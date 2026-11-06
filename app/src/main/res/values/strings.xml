@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">MediBook</string>
+    <string name="hospital_tagline">Your hospital. Your care.</string>
+    <string name="login_heading">Welcome back</string>
+    <string name="login_subtitle">Sign in to manage your hospital appointments.</string>
+    <string name="registration_heading">Create your account</string>
+    <string name="registration_subtitle">Register as a patient to get started with MediBook.</string>
+    <string name="email_label">Email address</string>
+    <string name="password_label">Password</string>
+    <string name="full_name_label">Full name</string>
+    <string name="phone_label">Phone number</string>
+    <string name="confirm_password_label">Confirm password</string>
+    <string name="login_button">Login</string>
+    <string name="register_button">Register</string>
+    <string name="create_account_button">Create account</string>
+    <string name="back_to_login_button">Back to login</string>
+    <string name="new_patient_prompt">New to MediBook?</string>
+    <string name="existing_account_prompt">Already have an account?</string>
+    <string name="password_guidance">Use at least 6 characters.</string>
+    <string name="auth_ui_notice">Preview only — authentication is not connected yet.</string>
+    <string name="auth_not_connected">Authentication is not connected yet. No sign-in or registration was performed.</string>
+    <string name="error_email_required">Enter your email address.</string>
+    <string name="error_email_invalid">Enter a valid email address.</string>
+    <string name="error_password_required">Enter your password.</string>
+    <string name="error_password_short">Use at least 6 characters.</string>
+    <string name="error_name_required">Enter your full name.</string>
+    <string name="error_phone_invalid">Enter a valid phone number with 7–15 digits.</string>
+    <string name="error_confirm_password_required">Confirm your password.</string>
+    <string name="error_password_mismatch">Passwords do not match.</string>
 </resources>
