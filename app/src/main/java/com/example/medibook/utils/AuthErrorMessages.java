@@ -23,7 +23,7 @@ public final class AuthErrorMessages {
             case PERMISSION_DENIED: return R.string.auth_error_permission;
             case PROFILE_MISSING: return R.string.auth_error_profile_missing;
             case INVALID_PROFILE: return R.string.auth_error_profile_invalid;
-            case PATIENT_ONLY: return R.string.auth_error_patient_only;
+            case ROLE_MISMATCH: return R.string.auth_error_role_mismatch;
             case PROFILE_FAILED_ACCOUNT_REMOVED: return R.string.auth_error_profile_rolled_back;
             case PROFILE_FAILED_ACCOUNT_REMAINS: return R.string.auth_error_profile_cleanup_failed;
             default: return R.string.auth_error_unknown;

@@ -9,10 +9,10 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.medibook.R;
-import com.example.medibook.activities.patient.PatientHomeActivity;
 import com.example.medibook.databinding.ActivityLoginBinding;
 import com.example.medibook.repositories.AuthRepository;
 import com.example.medibook.utils.AuthErrorMessages;
+import com.example.medibook.utils.AuthNavigation;
 import com.example.medibook.utils.AuthUi;
 
 public class LoginActivity extends AppCompatActivity implements AuthRepository.Listener {
@@ -66,12 +66,9 @@ public class LoginActivity extends AppCompatActivity implements AuthRepository.L
         if (state.error != AuthRepository.Error.NONE) {
             binding.statusMessage.setText(AuthErrorMessages.forError(state.error));
         }
-        if (state.patient != null) {
+        if (state.user != null) {
             binding.passwordInput.setText(null);
-            Intent intent = new Intent(this, PatientHomeActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+            AuthNavigation.openDestination(this, state.user);
         }
     }
 

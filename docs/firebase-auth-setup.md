@@ -1,4 +1,4 @@
-# Patient authentication setup and review
+# Patient registration and shared account authentication
 
 This step uses Firebase Authentication and the **default Cloud Firestore database**.
 It does not use Realtime Database. No Console changes or rules deployments are performed by the app.
@@ -11,7 +11,9 @@ It does not use Realtime Database. No Console changes or rules deployments are p
    **Get started**). Enable **Email/Password**, then **Save**. Email-link login is not needed.
 3. Open **Build > Firestore Database**. If the default database has not been created,
    create it in **production mode**, reviewing the location before confirming.
-4. Publish the reviewed rules below before testing registration. Do not use open/test-mode rules.
+4. The reviewed Patient-only creation/owner-read rules must already be published before registration.
+   They require no change for the Admin welcome/logout dashboard; do not redeploy them for routing.
+   The manual publication steps below are retained for setup reference only.
 
 ## Exactly how to publish the local rules manually
 
@@ -38,17 +40,39 @@ No Firebase CLI deployment or service-account credential is required for this ma
   and be at most 254 characters. Phones are normalized to 7–15 digits with an optional leading `+`.
 - Reads are owner-only direct document reads. Collection listing, profile updates, profile
   deletion, extra fields, forged timestamps, and role changes are denied.
-- No Admin access is enabled. The reserved `admin == true` **custom claim** must only ever be
-  assigned by a trusted future administrative process. A profile role is never an Admin privilege.
-- The app rejects Admin claims and non-Patient profiles. The backend rules, not UI checks,
-  enforce data access. Publish the reviewed rules before relying on these protections.
+- No Admin-wide database permissions are enabled. The `admin == true` **custom claim** must
+  only ever be assigned through a trusted administrative process outside Android. A profile role
+  is never an Admin privilege. The current rules let either account read only its own profile.
+- Shared login reloads the Auth account, force-refreshes the ID token (`getIdToken(true)`), and
+  reads the owner's profile with `Source.SERVER`. The app applies this strict routing policy:
+
+  | Signed Admin claim | Server profile role | Route |
+  | --- | --- | --- |
+  | Boolean `true` | `Admin` | Admin Dashboard |
+  | `admin` key absent | `Patient` | Patient Home |
+  | Any mismatch, including explicit `false`, null, string, or numeric Admin claim | Any | Sign out |
+  | Unavailable claims or missing/invalid profile | Any | Sign out |
+
+  A valid profile has exactly the five expected fields, valid name/phone, an email matching the
+  authenticated identity, and a Firestore Timestamp. Public registration remains Patient-only,
+  even if a valid Admin claim/profile pair is encountered during its final verification.
+- The backend rules, not UI navigation, enforce database access. Future privileged data features
+  need separately reviewed claim-based rules; this dashboard performs no privileged writes.
 - Passwords are passed only to Firebase Authentication; they are not stored in Firestore,
   model objects, preferences, instance-state bundles, application logs, or repository state.
-- Firebase manages persistent auth credentials. Each launch and patient-screen re-entry reloads
+- Firebase manages persistent auth credentials. Each launch and protected-screen re-entry reloads
   the account, refreshes claims, and fetches the profile from the **server**, never from cached
   profile data for authorization. Offline/unverifiable sessions fail closed and are signed out.
 - Logout clears Firebase Auth and the navigation task. Late session-check callbacks cannot
-  reopen Patient Home. Existing theme and fixed `Asia/Dhaka` configuration are unchanged.
+  reopen either protected screen. Each screen is non-exported and reveals its welcome content
+  only after verification of its required role. A verified user arriving at the wrong screen is
+  redirected to their own home; a claim/profile mismatch is signed out by the repository.
+  No role is accepted from Intent extras, local preferences or saved UI state.
+  Existing theme and fixed `Asia/Dhaka` configuration are unchanged.
+- The provisioned Admin account remains **disabled**. This implementation does not enable it,
+  modify its claims/profile, invoke the standalone utility, or change either database's rules.
+  A disabled account must fail authentication; successful live Admin login remains deferred until
+  the owner separately approves and manually enables it. No such approval is assumed here.
 
 ## Partial registration and interruption handling
 
@@ -91,9 +115,25 @@ Use test accounts in a development Firebase project; never real patient informat
    cleanup; restore the reviewed rules afterwards. Test failed cleanup/network interruption
    separately. No failure may be displayed as successful registration.
 7. Test missing profiles, malformed profiles, owner-read permission denial, disabled/deleted
-   Auth accounts, and profiles with `role: "Admin"`. All must fail closed.
-8. Through a trusted test environment only, use a test account with the `admin: true` custom
-   claim. It must not enter this patient flow, even if its profile says Patient.
+   Auth accounts, and Admin profiles without a Boolean true claim. All must fail closed.
+8. With synthetic local unit-test inputs, verify both valid routes and every mismatch, including
+   string/numeric/null/false claims. Permission/token/network failures must never publish a verified
+   user. Existing failure handlers clear Firebase Auth and the repository session.
+9. When separately authorized to test an enabled Admin account in a development environment:
+   verify shared Login -> Admin Dashboard, session restore, rotation, foreground rechecks,
+   Logout -> Login, and Back not reopening the dashboard. Do not enable the actual Admin as
+   part of this implementation or use real account details in logs/screenshots.
+10. With an ordinary test Patient, verify Admin Dashboard cannot reveal content even if reached
+    through an internal navigation test. It must return the verified Patient to Patient Home.
+    With a signed-out user it must return to Login. No Activity accepts a role extra.
+
+Role-policy tests in `SessionPolicyTest` are deterministic and do not contact Firebase. They do
+not replace device/emulator integration tests of SDK failures and Android navigation. The app
+has no automatic account enabling, custom-claim assignment, or metadata repair path.
+
+Changing/removing custom claims does not instantly invalidate all previously issued tokens.
+Foreground/session gates force a refresh, but future backend access must still be secured by
+reviewed rules. Immediate revocation would require additional server-enforced checks.
 
 ### Rules checks before production use
 

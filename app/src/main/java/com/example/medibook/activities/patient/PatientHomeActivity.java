@@ -1,15 +1,15 @@
 package com.example.medibook.activities.patient;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.medibook.R;
-import com.example.medibook.activities.auth.LoginActivity;
 import com.example.medibook.databinding.ActivityPatientHomeBinding;
+import com.example.medibook.models.UserProfile;
 import com.example.medibook.repositories.AuthRepository;
+import com.example.medibook.utils.AuthNavigation;
 import com.example.medibook.utils.AuthUi;
 
 /** Temporary patient-only landing screen, not a doctor/appointment dashboard. */
@@ -41,6 +41,7 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         repository.removeListener(this);
         // Hide patient data in the stopped Activity while a future session check is pending.
         binding.welcomeMessage.setVisibility(View.GONE);
+        binding.welcomeMessage.setText(null);
         binding.patientDescription.setVisibility(View.GONE);
         super.onStop();
     }
@@ -50,17 +51,17 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         if (isFinishing()) return;
         binding.loadingIndicator.setVisibility(state.loading ? View.VISIBLE : View.GONE);
         binding.sessionStatus.setVisibility(state.loading ? View.VISIBLE : View.GONE);
-        binding.welcomeMessage.setVisibility(!state.loading && state.patient != null ? View.VISIBLE : View.GONE);
-        binding.patientDescription.setVisibility(!state.loading && state.patient != null ? View.VISIBLE : View.GONE);
+        boolean authorized = !state.loading && state.user != null
+                && state.user.getRole() == UserProfile.Role.PATIENT;
+        binding.welcomeMessage.setVisibility(authorized ? View.VISIBLE : View.GONE);
+        binding.patientDescription.setVisibility(authorized ? View.VISIBLE : View.GONE);
         if (state.loading) return;
 
-        if (state.patient == null) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+        if (!authorized) {
+            // A verified Admin belongs in the Admin flow, never in Patient Home.
+            AuthNavigation.openDestination(this, state.user);
         } else {
-            binding.welcomeMessage.setText(getString(R.string.patient_welcome, state.patient.getFullName()));
+            binding.welcomeMessage.setText(getString(R.string.patient_welcome, state.user.getFullName()));
         }
     }
 }

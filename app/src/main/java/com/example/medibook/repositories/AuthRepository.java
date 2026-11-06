@@ -1,8 +1,7 @@
 package com.example.medibook.repositories;
 
-import com.example.medibook.models.PatientProfile;
-import com.example.medibook.utils.PatientProfileValidation;
-import com.google.firebase.Timestamp;
+import com.example.medibook.models.UserProfile;
+import com.example.medibook.utils.SessionPolicy;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.FirebaseAuth;
@@ -33,18 +32,18 @@ public final class AuthRepository {
     public enum Error {
         NONE, NETWORK, TOO_MANY_REQUESTS, EMAIL_IN_USE, WEAK_PASSWORD,
         INVALID_CREDENTIALS, AUTH_UNAVAILABLE, PERMISSION_DENIED, PROFILE_MISSING,
-        INVALID_PROFILE, PATIENT_ONLY, PROFILE_FAILED_ACCOUNT_REMOVED,
+        INVALID_PROFILE, ROLE_MISMATCH, PROFILE_FAILED_ACCOUNT_REMOVED,
         PROFILE_FAILED_ACCOUNT_REMAINS, UNKNOWN
     }
 
     public static final class State {
         public final boolean loading;
-        public final PatientProfile patient;
+        public final UserProfile user;
         public final Error error;
 
-        private State(boolean loading, PatientProfile patient, Error error) {
+        private State(boolean loading, UserProfile user, Error error) {
             this.loading = loading;
-            this.patient = patient;
+            this.user = user;
             this.error = error;
         }
     }
@@ -89,7 +88,7 @@ public final class AuthRepository {
                 fail(operation, mapError(task.getException()));
                 return;
             }
-            verifyPatient(auth.getCurrentUser(), operation);
+            verifySession(auth.getCurrentUser(), operation, false);
         });
     }
 
@@ -112,7 +111,7 @@ public final class AuthRepository {
             profile.put("fullName", fullName);
             profile.put("email", user.getEmail());
             profile.put("phone", phone);
-            profile.put("role", PatientProfile.ROLE);
+            profile.put("role", UserProfile.Role.PATIENT.getProfileValue());
             profile.put("createdAt", FieldValue.serverTimestamp());
 
             // Completion means the server accepted the write, not just the local cache.
@@ -120,7 +119,7 @@ public final class AuthRepository {
                     .addOnCompleteListener(profileTask -> {
                         if (operation != operationId) return;
                         if (profileTask.isSuccessful()) {
-                            verifyPatient(user, operation);
+                            verifySession(user, operation, true);
                         } else {
                             rollbackNewAccount(user, operation);
                         }
@@ -135,11 +134,11 @@ public final class AuthRepository {
             publish(new State(false, null, Error.NONE));
             return;
         }
-        verifyPatient(user, beginOperation());
+        verifySession(user, beginOperation(), false);
     }
 
     public void signOut() {
-        // Late session-check callbacks must not reopen a logged-out patient screen.
+        // Late session-check callbacks must not reopen either logged-out protected screen.
         operationId++;
         auth.signOut();
         publish(new State(false, null, Error.NONE));
@@ -151,7 +150,7 @@ public final class AuthRepository {
         return operation;
     }
 
-    private void verifyPatient(FirebaseUser user, int operation) {
+    private void verifySession(FirebaseUser user, int operation, boolean patientRegistration) {
         if (user == null) {
             fail(operation, Error.INVALID_CREDENTIALS);
             return;
@@ -169,11 +168,7 @@ public final class AuthRepository {
                     fail(operation, mapError(tokenTask.getException()));
                     return;
                 }
-                // An Admin claim never grants entry here. There is no Admin flow in this step.
-                if (Boolean.TRUE.equals(tokenTask.getResult().getClaims().get("admin"))) {
-                    fail(operation, Error.PATIENT_ONLY);
-                    return;
-                }
+                Map<String, Object> claims = tokenTask.getResult().getClaims();
                 firestore.collection("users").document(user.getUid()).get(Source.SERVER)
                         .addOnCompleteListener(profileTask -> {
                             if (operation != operationId) return;
@@ -181,34 +176,31 @@ public final class AuthRepository {
                                 fail(operation, mapError(profileTask.getException()));
                                 return;
                             }
-                            acceptProfile(profileTask.getResult(), operation);
+                            acceptProfile(profileTask.getResult(), claims, user.getEmail(),
+                                    operation, patientRegistration);
                         });
             });
         });
     }
 
-    private void acceptProfile(DocumentSnapshot document, int operation) {
+    private void acceptProfile(DocumentSnapshot document, Map<String, Object> claims,
+                               String authenticatedEmail, int operation, boolean patientRegistration) {
         if (!document.exists()) {
             fail(operation, Error.PROFILE_MISSING);
             return;
         }
-        Map<String, Object> data = document.getData();
-        if (data == null || !PatientProfile.ROLE.equals(data.get("role"))) {
-            fail(operation, Error.PATIENT_ONLY);
+        SessionPolicy.Result result = patientRegistration
+                ? SessionPolicy.evaluatePatientRegistration(claims, document.getData(), authenticatedEmail)
+                : SessionPolicy.evaluate(claims, document.getData(), authenticatedEmail);
+        if (result.failure == SessionPolicy.Failure.ROLE_MISMATCH) {
+            fail(operation, Error.ROLE_MISMATCH);
             return;
         }
-        Object name = data.get("fullName");
-        Object email = data.get("email");
-        Object phone = data.get("phone");
-        if (!(name instanceof String) || !PatientProfileValidation.isValidName((String) name)
-                || !(email instanceof String) || ((String) email).isEmpty()
-                || !(phone instanceof String) || !PatientProfileValidation.isValidPhone((String) phone)
-                || !(data.get("createdAt") instanceof Timestamp)) {
+        if (result.failure != SessionPolicy.Failure.NONE) {
             fail(operation, Error.INVALID_PROFILE);
             return;
         }
-        publish(new State(false, new PatientProfile((String) name, (String) email, (String) phone),
-                Error.NONE));
+        publish(new State(false, result.user, Error.NONE));
     }
 
     private void rollbackNewAccount(FirebaseUser user, int operation) {

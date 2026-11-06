@@ -1,14 +1,12 @@
 package com.example.medibook;
 
-import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.medibook.activities.auth.LoginActivity;
-import com.example.medibook.activities.patient.PatientHomeActivity;
 import com.example.medibook.databinding.ActivityMainBinding;
 import com.example.medibook.repositories.AuthRepository;
+import com.example.medibook.utils.AuthNavigation;
 import com.example.medibook.utils.AuthUi;
 
 public class MainActivity extends AppCompatActivity implements AuthRepository.Listener {
@@ -40,8 +38,6 @@ public class MainActivity extends AppCompatActivity implements AuthRepository.Li
     @Override
     public void onAuthStateChanged(AuthRepository.State state) {
         if (state.loading || isFinishing()) return;
-        Class<?> destination = state.patient == null ? LoginActivity.class : PatientHomeActivity.class;
-        startActivity(new Intent(this, destination));
-        finish();
+        AuthNavigation.openDestination(this, state.user);
     }
 }
