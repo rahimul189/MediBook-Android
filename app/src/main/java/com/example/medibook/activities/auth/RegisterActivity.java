@@ -1,19 +1,31 @@
 package com.example.medibook.activities.auth;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.medibook.R;
+import com.example.medibook.activities.patient.PatientHomeActivity;
 import com.example.medibook.databinding.ActivityRegisterBinding;
+import com.example.medibook.repositories.AuthRepository;
+import com.example.medibook.utils.AuthErrorMessages;
 import com.example.medibook.utils.AuthUi;
-import com.google.android.material.snackbar.Snackbar;
+import com.example.medibook.utils.PatientProfileValidation;
 
-public class RegisterActivity extends AppCompatActivity {
+public class RegisterActivity extends AppCompatActivity implements AuthRepository.Listener {
 
     private ActivityRegisterBinding binding;
+    private AuthRepository repository;
+    private final OnBackPressedCallback blockBackWhileLoading = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            // Account creation/profile creation/cleanup must finish before leaving.
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,12 +33,54 @@ public class RegisterActivity extends AppCompatActivity {
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         AuthUi.applyInsets(this, binding.getRoot());
+        repository = AuthRepository.getInstance();
+        getOnBackPressedDispatcher().addCallback(this, blockBackWhileLoading);
 
         binding.backToLoginButton.setOnClickListener(view -> finish());
         binding.registerButton.setOnClickListener(view -> validateForm());
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        repository.addListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        repository.removeListener(this);
+        super.onStop();
+    }
+
+    @Override
+    public void onAuthStateChanged(AuthRepository.State state) {
+        if (isFinishing()) return;
+        binding.fullNameLayout.setEnabled(!state.loading);
+        binding.emailLayout.setEnabled(!state.loading);
+        binding.phoneLayout.setEnabled(!state.loading);
+        binding.passwordLayout.setEnabled(!state.loading);
+        binding.confirmPasswordLayout.setEnabled(!state.loading);
+        binding.registerButton.setEnabled(!state.loading);
+        binding.backToLoginButton.setEnabled(!state.loading);
+        binding.registerButton.setText(state.loading ? R.string.creating_account : R.string.register_button);
+        binding.loadingIndicator.setVisibility(state.loading ? View.VISIBLE : View.GONE);
+        blockBackWhileLoading.setEnabled(state.loading);
+        binding.statusMessage.setVisibility(state.error == AuthRepository.Error.NONE ? View.GONE : View.VISIBLE);
+        if (state.error != AuthRepository.Error.NONE) {
+            binding.statusMessage.setText(AuthErrorMessages.forError(state.error));
+        }
+        if (state.patient != null) {
+            binding.passwordInput.setText(null);
+            binding.confirmPasswordInput.setText(null);
+            Intent intent = new Intent(this, PatientHomeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+    }
+
     private void validateForm() {
+        binding.statusMessage.setVisibility(View.GONE);
         binding.fullNameLayout.setError(null);
         binding.emailLayout.setError(null);
         binding.phoneLayout.setError(null);
@@ -35,22 +89,21 @@ public class RegisterActivity extends AppCompatActivity {
 
         String name = binding.fullNameInput.getText().toString().trim();
         String email = binding.emailInput.getText().toString().trim();
-        String phone = binding.phoneInput.getText().toString().trim();
+        String phone = PatientProfileValidation.normalizePhone(binding.phoneInput.getText().toString());
         String password = binding.passwordInput.getText().toString();
         String confirmation = binding.confirmPasswordInput.getText().toString();
         View firstInvalid = null;
 
-        if (name.isEmpty()) {
-            binding.fullNameLayout.setError(getString(R.string.error_name_required));
+        if (!PatientProfileValidation.isValidName(name)) {
+            binding.fullNameLayout.setError(getString(R.string.error_name_invalid));
             firstInvalid = binding.fullNameInput;
         }
-        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (email.isEmpty() || email.length() > 254 || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             binding.emailLayout.setError(getString(email.isEmpty()
                     ? R.string.error_email_required : R.string.error_email_invalid));
             if (firstInvalid == null) firstInvalid = binding.emailInput;
         }
-        int digitCount = phone.replaceAll("[^0-9]", "").length();
-        if (!Patterns.PHONE.matcher(phone).matches() || digitCount < 7 || digitCount > 15) {
+        if (!PatientProfileValidation.isValidPhone(phone)) {
             binding.phoneLayout.setError(getString(R.string.error_phone_invalid));
             if (firstInvalid == null) firstInvalid = binding.phoneInput;
         }
@@ -68,7 +121,7 @@ public class RegisterActivity extends AppCompatActivity {
         if (firstInvalid != null) {
             firstInvalid.requestFocus();
         } else {
-            Snackbar.make(binding.getRoot(), R.string.auth_not_connected, Snackbar.LENGTH_LONG).show();
+            repository.register(name, email, phone, password);
         }
     }
 }

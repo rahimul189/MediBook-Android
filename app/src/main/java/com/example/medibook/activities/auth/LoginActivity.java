@@ -3,17 +3,28 @@ package com.example.medibook.activities.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
+import android.view.View;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.medibook.R;
+import com.example.medibook.activities.patient.PatientHomeActivity;
 import com.example.medibook.databinding.ActivityLoginBinding;
+import com.example.medibook.repositories.AuthRepository;
+import com.example.medibook.utils.AuthErrorMessages;
 import com.example.medibook.utils.AuthUi;
-import com.google.android.material.snackbar.Snackbar;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements AuthRepository.Listener {
 
     private ActivityLoginBinding binding;
+    private AuthRepository repository;
+    private final OnBackPressedCallback blockBackWhileLoading = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            // Finish the authentication/profile operation before navigating away.
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,13 +32,51 @@ public class LoginActivity extends AppCompatActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         AuthUi.applyInsets(this, binding.getRoot());
+        repository = AuthRepository.getInstance();
+        getOnBackPressedDispatcher().addCallback(this, blockBackWhileLoading);
 
         binding.createAccountButton.setOnClickListener(view ->
                 startActivity(new Intent(this, RegisterActivity.class)));
         binding.loginButton.setOnClickListener(view -> validateForm());
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        repository.addListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        repository.removeListener(this);
+        super.onStop();
+    }
+
+    @Override
+    public void onAuthStateChanged(AuthRepository.State state) {
+        if (isFinishing()) return;
+        binding.emailLayout.setEnabled(!state.loading);
+        binding.passwordLayout.setEnabled(!state.loading);
+        binding.loginButton.setEnabled(!state.loading);
+        binding.createAccountButton.setEnabled(!state.loading);
+        binding.loginButton.setText(state.loading ? R.string.signing_in : R.string.login_button);
+        binding.loadingIndicator.setVisibility(state.loading ? View.VISIBLE : View.GONE);
+        blockBackWhileLoading.setEnabled(state.loading);
+        binding.statusMessage.setVisibility(state.error == AuthRepository.Error.NONE ? View.GONE : View.VISIBLE);
+        if (state.error != AuthRepository.Error.NONE) {
+            binding.statusMessage.setText(AuthErrorMessages.forError(state.error));
+        }
+        if (state.patient != null) {
+            binding.passwordInput.setText(null);
+            Intent intent = new Intent(this, PatientHomeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+    }
+
     private void validateForm() {
+        binding.statusMessage.setVisibility(View.GONE);
         binding.emailLayout.setError(null);
         binding.passwordLayout.setError(null);
 
@@ -38,7 +87,7 @@ public class LoginActivity extends AppCompatActivity {
         if (email.isEmpty()) {
             binding.emailLayout.setError(getString(R.string.error_email_required));
             valid = false;
-        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        } else if (email.length() > 254 || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             binding.emailLayout.setError(getString(R.string.error_email_invalid));
             valid = false;
         }
@@ -48,7 +97,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         if (valid) {
-            Snackbar.make(binding.getRoot(), R.string.auth_not_connected, Snackbar.LENGTH_LONG).show();
+            repository.signIn(email, password);
         } else if (binding.emailLayout.getError() != null) {
             binding.emailInput.requestFocus();
         } else {

@@ -58,6 +58,7 @@
                         android:autofillHints="personName"
                         android:imeOptions="actionNext"
                         android:inputType="textPersonName|textCapWords"
+                        android:maxLength="100"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -75,6 +76,7 @@
                         android:autofillHints="emailAddress"
                         android:imeOptions="actionNext"
                         android:inputType="textEmailAddress"
+                        android:maxLength="254"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -141,13 +143,28 @@
                     android:layout_height="wrap_content"
                     android:text="@string/register_button" />
 
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/loadingIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:contentDescription="@string/creating_account"
+                    android:indeterminate="true"
+                    android:visibility="gone"
+                    app:indicatorSize="28dp"
+                    app:trackThickness="3dp" />
+
                 <TextView
+                    android:id="@+id/statusMessage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:accessibilityLiveRegion="polite"
                     android:gravity="center"
-                    android:text="@string/auth_ui_notice"
-                    android:textAppearance="@style/TextAppearance.MediBook.Body" />
+                    android:textAppearance="@style/TextAppearance.MediBook.Body"
+                    android:textColor="@color/medibook_error"
+                    android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

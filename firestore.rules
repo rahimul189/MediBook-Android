@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Reserved for future reviewed Admin rules. Only a trusted Admin SDK environment
+    // may assign this claim; a users/{uid}.role field NEVER grants Admin privileges.
+    function isAdmin() {
+      return signedIn() && request.auth.token.get('admin', false) == true;
+    }
+
+    function validPatientProfile() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'role', 'createdAt'])
+        && data.keys().hasOnly(['fullName', 'email', 'phone', 'role', 'createdAt'])
+        && data.fullName is string
+        && data.fullName.size() > 0 && data.fullName.size() <= 100
+        && data.fullName.matches('.*\\S.*')
+        && data.email is string
+        && data.email.size() > 0 && data.email.size() <= 254
+        && data.email == request.auth.token.get('email', '')
+        && data.phone is string
+        && data.phone.matches('^\\+?[0-9]{7,15}$')
+        && data.role == 'Patient'
+        && data.createdAt is timestamp
+        && data.createdAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid
+        && !isAdmin() && validPatientProfile();
+      // Direct document reads only, including checking whether your own profile exists.
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, update, delete: if false;
+    }
+
+    // No doctors, appointments, or Admin-wide access in this step.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
