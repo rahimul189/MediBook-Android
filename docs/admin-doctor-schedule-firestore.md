@@ -104,14 +104,17 @@ From the repository root:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=plain
-npm.cmd --prefix tests/firestore run test:rules
+.\gradlew.bat :firestore-rules-tests:test --console=plain
 git diff --check
 ```
 
-The existing pinned Node dependencies and Java 21+ are needed for Rules tests. They start only the
-Firestore emulator using `firebase.emulators.json`, project `demo-medibook`, host `127.0.0.1:8080`.
-No production accounts, service credentials or deployments are used. Suites run serially because each
-clears only that fixed demo emulator. See `tests/firestore/README.md` for setup and coverage.
+Step 77 replaces the original test tooling with Java/JUnit and a pinned Java emulator JAR; Java 21+
+is required, with no JavaScript/Node/CLI dependency. The runner verifies `firebase.emulators.json`,
+starts its own emulator for `demo-medibook` at `127.0.0.1:8080`, and sends authenticated/anonymous
+client REST requests that actually evaluate Rules. Fixture-only bypass is not permission evidence.
+No production accounts, service credentials or deployments are used. See `tests/firestore/README.md`
+and `tests/firestore/COVERAGE.md` for setup, current test results, the original 37-case replacement
+mapping and the Step 78 profile-query regression (42 current tests).
 
 Java tests cover mapping/strict types, ISO/minute/duration boundaries, immutable copies, half-open
 overlaps and different durations, sorted immutable directories, server-version identity, duplicate
@@ -151,9 +154,9 @@ Java paths in this list are relative to `app/src/main/java/com/example/medibook/
   Added `app/src/test/java/com/example/medibook/repositories/DoctorScheduleMapperTest.java` and
   `app/src/test/java/com/example/medibook/viewmodels/DoctorScheduleViewModelTest.java`.
 - Added Schedule rule comments in `firestore.rules`; its pre-existing partial Schedule policy passes
-  the new emulator suite without weakening Patient/Doctor policies. Added
-  `tests/firestore/schedule.rules.test.mjs`, updated `tests/firestore/package.json` to run both suites,
-  and expanded `tests/firestore/README.md`; pinned dependencies/lockfile are unchanged.
+  the emulator suite without weakening Patient/Doctor policies. The initial test scaffold was later
+  replaced by the Step 77 Java/JUnit suite under `tests/firestore/src/test/java/`; see its README
+  for current commands. The recovery results above remain historical milestone results.
 - Added this document and marked `docs/admin-doctor-schedule-ui.md` as historical. Partial Step 69
   model/mapper/conflict utilities/contract/adapter/strings are retained and now have compatible consumers.
 

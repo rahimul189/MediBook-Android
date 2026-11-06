@@ -146,7 +146,7 @@ reviewed rules. Immediate revocation would require additional server-enforced ch
 ### Rules checks before production use
 
 Use the Firestore rules simulator or a separately configured Firebase Emulator Suite harness
-(see `tests/firestore` for the isolated local demo-project suite). SDK client tests should cover:
+(see `tests/firestore` for the Java/JUnit local demo-project suite). End-user client tests cover:
 
 | Request | Expected |
 | --- | --- |
@@ -161,4 +161,7 @@ Use the Firestore rules simulator or a separately configured Firebase Emulator S
 
 Rules have not been deployed by the coding agent. The Step 5 local demo-emulator suite passed
 its doctor-access and Patient-profile regression checks; see `docs/admin-doctor-firestore.md`.
+The current Node-free replacement runs with `.\gradlew.bat :firestore-rules-tests:test --console=plain`.
+It uses authenticated/anonymous REST clients that evaluate Rules, not Admin SDK permission assertions;
+no real Auth accounts or claims are changed. See `tests/firestore/README.md` for Java emulator setup.
 A successful Android build or emulator test does not verify production Firebase configuration.

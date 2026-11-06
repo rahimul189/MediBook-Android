@@ -96,7 +96,14 @@ Security Rules: see [the isolated emulator suite](../tests/firestore/README.md).
 fixed local endpoint `127.0.0.1:8080`, project `demo-medibook`, and synthetic identities/data.
 No Firebase login, project selection, private key or production configuration is needed.
 
-Local verification for this implementation: 68 Android unit tests and 15 Firestore emulator
+Step 77 migrates Rules integration tests to Java/JUnit using the official Firestore client REST API,
+not the Admin SDK. Run `.\gradlew.bat :firestore-rules-tests:test --console=plain`; Java 21+ and the
+pinned Java emulator JAR are required, not JavaScript/Node. The original 15 cases are retained in
+`DoctorRulesTest`, alongside the 22 Schedule cases, four transport/authorization canaries and the
+Step 78 exact-ID Patient profile-query regression (**42 total**).
+See `tests/firestore/COVERAGE.md` for the one-for-one security coverage map and current limitations.
+
+Historical verification for the Doctor-only implementation: 68 Android unit tests and 15 Firestore emulator
 test cases passed. Debug assembly and lint passed (0 lint errors, 13 warnings).
 Production deployment and Android CRUD device testing are not implied by these results.
 

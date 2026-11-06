@@ -15,6 +15,11 @@ import static org.junit.Assert.*;
 
 /** Offline mapping only. Fixtures are never sent to Firebase or included as application data. */
 public class DoctorMapperTest {
+    @Test public void patientFeeExampleUsesIntegerHundredthsWithoutRounding() {
+        Map<String, Object> values = data();
+        values.put("consultationFee", 50000L);
+        assertEquals("500.00", DoctorMapper.fromMap("doctor-1", values).getConsultationFee().toPlainString());
+    }
     private Map<String, Object> data() {
         Map<String, Object> data = new HashMap<>();
         data.put("name", "Fixture Name");

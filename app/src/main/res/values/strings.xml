@@ -29,7 +29,7 @@
     <string name="creating_account">Creating patient account…</string>
     <string name="checking_session">Checking your account session…</string>
     <string name="patient_welcome">Welcome, %1$s!</string>
-    <string name="patient_home_placeholder">You are signed in to MediBook as a patient. Doctor browsing and appointments will be added in a later step.</string>
+    <string name="patient_home_placeholder">Find the right doctor for your care. Search by name and explore specializations.</string>
     <string name="logout_button">Logout</string>
     <string name="admin_access_label">Hospital administration</string>
     <string name="admin_dashboard_heading">Admin Dashboard</string>
@@ -211,4 +211,55 @@
     <string name="schedule_discard_message">Return without submitting these form changes? This does not undo a write already sent to Firestore.</string>
     <string name="schedule_discard_button">Discard changes</string>
     <string name="schedule_keep_editing">Keep editing</string>
+
+    <!-- Patient directory UI only: no doctor data source or appointment booking in Step 75. -->
+    <string name="patient_home_title">Patient Home</string>
+    <string name="patient_area_label">Your care, in one place</string>
+    <string name="patient_home_heading">Care starts with the right doctor</string>
+    <string name="patient_directory_title">Doctor Directory</string>
+    <string name="patient_directory_description">Explore doctor profiles and find a specialization that fits your needs.</string>
+    <string name="patient_search_hint">Search doctors by name</string>
+    <string name="patient_specialization_hint">Specialization</string>
+    <string name="patient_specialization_all">All specializations</string>
+    <string name="patient_specialization_pending">No specializations available.</string>
+    <string name="patient_specialization_loading">Loading specializations…</string>
+    <string name="patient_directory_loading_title">Loading doctors…</string>
+    <string name="patient_directory_loading_message">Please wait while doctor details are being prepared.</string>
+    <string name="patient_directory_empty_title">No active doctors to show</string>
+    <string name="patient_directory_empty_message">There are no active doctor records in this directory.</string>
+    <string name="patient_directory_no_matches_title">No matching doctors</string>
+    <string name="patient_directory_no_matches_message">Try a different name or clear your specialization filter.</string>
+    <string name="patient_directory_clear_filters">Clear search and filters</string>
+    <string name="patient_directory_error_title">Doctor directory unavailable</string>
+    <string name="patient_directory_retry">Try again</string>
+    <plurals name="patient_directory_result_count">
+        <item quantity="one">%1$d doctor shown</item>
+        <item quantity="other">%1$d doctors shown</item>
+    </plurals>
+    <string name="patient_doctor_qualifications">Qualifications: %1$s</string>
+    <string name="patient_doctor_view_profile">View profile</string>
+    <string name="patient_doctor_profile_accessibility">View profile for %1$s</string>
+    <string name="patient_profile_title">Doctor Profile</string>
+    <string name="patient_profile_about_heading">About the doctor</string>
+    <string name="patient_profile_biography_empty">No biography provided.</string>
+    <string name="patient_profile_fee_currency_hint">Fee currency is not configured yet.</string>
+    <string name="patient_profile_schedule_heading">Weekly schedule</string>
+    <string name="patient_profile_timezone">Hospital time: %1$s</string>
+    <string name="patient_profile_book_placeholder">Book appointment — coming soon</string>
+    <string name="patient_profile_booking_notice">Appointment booking is coming soon.</string>
+    <string name="patient_profile_back">Back to Doctor Directory</string>
+    <string name="patient_profile_error_title">Profile unavailable</string>
+    <string name="patient_profile_error_message">Doctor profile information is missing or invalid. Return to the directory to continue.</string>
+    <string name="patient_live_permission">Access denied. Your Patient session or this doctor’s availability may have changed. Retry or sign in again.</string>
+    <string name="patient_live_error">Unable to verify current data. Check your connection and retry. No cached records are shown.</string>
+    <string name="patient_live_unavailable">This doctor is no longer available. Return to the directory or retry.</string>
+    <string name="patient_live_schedule_loading">Loading weekly schedules…</string>
+    <string name="patient_live_schedule_empty">No active weekly schedules are currently published.</string>
+    <string name="patient_profile_loading_title">Loading doctor profile…</string>
+    <string name="patient_profile_loading_message">Please wait while current details and weekly schedules are verified.</string>
+    <string name="patient_live_schedule_row">%1$s · %2$s – %3$s\n%4$s</string>
+    <plurals name="patient_live_schedule_interval">
+        <item quantity="one">Appointments every %1$d minute</item>
+        <item quantity="other">Appointments every %1$d minutes</item>
+    </plurals>
 </resources>

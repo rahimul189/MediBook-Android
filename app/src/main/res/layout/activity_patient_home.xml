@@ -1,72 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/medibook_background"
-    android:fillViewport="true"
-    tools:context=".activities.patient.PatientHomeActivity">
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" tools:context=".activities.patient.PatientHomeActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="vertical"
-        android:padding="24dp">
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar" android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" android:background="@color/white"
+        app:title="@string/patient_home_title" app:titleTextColor="@color/medibook_text"
+        app:logo="@drawable/ic_medical_cross" app:menu="@menu/menu_patient" />
 
-        <include layout="@layout/view_auth_brand" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <include android:id="@+id/sessionLoading" layout="@layout/view_patient_session_loading" />
 
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.MediBook.AuthCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="24dp">
-
-                <com.google.android.material.progressindicator.CircularProgressIndicator
-                    android:id="@+id/loadingIndicator"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center_horizontal"
-                    android:indeterminate="true" />
-
-                <TextView
-                    android:id="@+id/sessionStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:text="@string/checking_session"
-                    android:textAppearance="@style/TextAppearance.MediBook.Body" />
-
-                <TextView
-                    android:id="@+id/welcomeMessage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:accessibilityHeading="true"
-                    android:textAppearance="@style/TextAppearance.MediBook.Heading"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/patientDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/patient_home_placeholder"
-                    android:textAppearance="@style/TextAppearance.MediBook.Body"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/logoutButton"
-                    style="@style/Widget.MediBook.PrimaryButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/logout_button" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+        <!-- Header, search, filters and results share one scroll; no nested RecyclerView. -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/patientContent" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:clipToPadding="false"
+            android:padding="16dp" android:scrollbars="vertical" android:visibility="gone"
+            tools:listitem="@layout/item_patient_directory_header" tools:visibility="visible" />
+    </FrameLayout>
+</LinearLayout>

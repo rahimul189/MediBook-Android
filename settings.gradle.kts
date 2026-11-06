@@ -24,3 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "MediBook"
 include(":app")
+include(":firestore-rules-tests")
+project(":firestore-rules-tests").projectDir = file("tests/firestore")
