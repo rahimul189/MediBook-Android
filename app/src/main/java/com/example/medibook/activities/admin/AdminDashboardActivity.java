@@ -1,5 +1,6 @@
 package com.example.medibook.activities.admin;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -13,10 +14,11 @@ import com.example.medibook.repositories.AuthRepository;
 import com.example.medibook.utils.AuthNavigation;
 import com.example.medibook.utils.AuthUi;
 
-/** Minimal Admin landing screen. No doctor/appointment data or privileged writes yet. */
+/** Verified Admin landing screen with secure Doctor Management navigation. */
 public class AdminDashboardActivity extends AppCompatActivity implements AuthRepository.Listener {
     private ActivityAdminDashboardBinding binding;
     private AuthRepository repository;
+    private boolean adminVerified;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +29,9 @@ public class AdminDashboardActivity extends AppCompatActivity implements AuthRep
         ViewCompat.setAccessibilityHeading(binding.dashboardHeading, true);
         repository = AuthRepository.getInstance();
         binding.logoutButton.setOnClickListener(view -> repository.signOut());
+        binding.manageDoctorsButton.setOnClickListener(view -> {
+            if (adminVerified) startActivity(new Intent(this, ManageDoctorsActivity.class));
+        });
     }
 
     @Override
@@ -41,6 +46,7 @@ public class AdminDashboardActivity extends AppCompatActivity implements AuthRep
     @Override
     protected void onStop() {
         repository.removeListener(this);
+        adminVerified = false;
         binding.adminContent.setVisibility(View.GONE);
         binding.welcomeMessage.setText(null);
         super.onStop();
@@ -51,6 +57,7 @@ public class AdminDashboardActivity extends AppCompatActivity implements AuthRep
         if (isFinishing()) return;
         boolean authorized = !state.loading && state.user != null
                 && state.user.getRole() == UserProfile.Role.ADMIN;
+        adminVerified = authorized;
         binding.loadingIndicator.setVisibility(state.loading ? View.VISIBLE : View.GONE);
         binding.sessionStatus.setVisibility(state.loading ? View.VISIBLE : View.GONE);
         binding.adminContent.setVisibility(authorized ? View.VISIBLE : View.GONE);

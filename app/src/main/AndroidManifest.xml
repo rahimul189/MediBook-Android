@@ -14,6 +14,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MediBook">
         <activity
+            android:name=".activities.admin.ManageDoctorScheduleActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.admin.AddEditDoctorScheduleActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.admin.AddEditDoctorActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".activities.admin.ManageDoctorsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".activities.admin.AdminDashboardActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

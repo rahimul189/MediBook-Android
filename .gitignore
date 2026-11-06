@@ -23,3 +23,8 @@ local.properties
 
 # Local Firebase application configuration
 /app/google-services.json
+
+# Isolated Firestore Security Rules test tooling/output
+/tests/firestore/node_modules/
+/tests/firestore/.firebase/
+/tests/firestore/*-debug.log

@@ -6,7 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Reserved for future reviewed Admin rules. Only a trusted Admin SDK environment
+    // Only a trusted Admin SDK environment
     // may assign this claim; a users/{uid}.role field NEVER grants Admin privileges.
     function isAdmin() {
       return signedIn() && request.auth.token.get('admin', false) == true;
@@ -37,7 +37,98 @@ service cloud.firestore {
       allow list, update, delete: if false;
     }
 
-    // No doctors, appointments, or Admin-wide access in this step.
+    // A Patient profile never grants Admin powers. Reject malformed Admin claims for Patient reads.
+    function isPatient() {
+      return signedIn() && !request.auth.token.keys().hasAny(['admin'])
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Patient';
+    }
+
+    function validDoctorText(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength
+        && value.matches('.*[^\\s\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}\\x{202F}\\x{205F}\\x{3000}].*')
+        && !value.matches('(?s).*[\\x00-\\x1F\\x7F-\\x9F\\x{2028}\\x{2029}].*');
+    }
+
+    function validDoctor() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'specialization', 'qualifications', 'consultationFee',
+          'biography', 'active', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'specialization', 'qualifications', 'consultationFee',
+          'biography', 'active', 'createdAt', 'updatedAt'])
+        && validDoctorText(data.name, 100)
+        && validDoctorText(data.specialization, 100)
+        && validDoctorText(data.qualifications, 200)
+        // Fee is integer hundredths: the UI amount 500.00 is stored as 50000.
+        && data.consultationFee is int && data.consultationFee >= 0 && data.consultationFee <= 99999999
+        && data.biography is string && data.biography.size() <= 1000
+        && !data.biography.matches('(?s).*[\\x00-\\x09\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F\\x{2028}\\x{2029}].*')
+        && data.active is bool
+        && data.createdAt is timestamp && data.updatedAt is timestamp
+        && data.updatedAt >= data.createdAt;
+    }
+
+    match /doctors/{doctorId} {
+      // Rules are not filters: a Patient list query MUST use where('active', '==', true).
+      allow read: if isAdmin() || (isPatient() && resource.data.active == true);
+      allow create: if isAdmin() && doctorId.matches('^[A-Za-z0-9_-]{1,128}$') && validDoctor()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin() && validDoctor()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedAt > resource.data.updatedAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'specialization', 'qualifications', 'consultationFee', 'biography', 'active', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Weekly schedule rules (Step 69). Existing Patient and Doctor policies above are unchanged.
+    function validSchedulePatient(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'role', 'createdAt'])
+        && data.keys().hasOnly(['fullName', 'email', 'phone', 'role', 'createdAt'])
+        && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100
+        && data.fullName.matches('.*\\S.*')
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 254
+        && data.email == request.auth.token.get('email', '')
+        && data.phone is string && data.phone.matches('^\\+?[0-9]{7,15}$')
+        && data.role == 'Patient' && data.createdAt is timestamp;
+    }
+
+    function validSchedule() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['dayOfWeek', 'startTime', 'endTime', 'slotDurationMinutes', 'active', 'updatedAt'])
+        && data.keys().hasOnly(['dayOfWeek', 'startTime', 'endTime', 'slotDurationMinutes', 'active', 'updatedAt'])
+        && data.dayOfWeek is int && data.dayOfWeek >= 1 && data.dayOfWeek <= 7
+        // Both times are integer minutes after midnight in Asia/Dhaka, never HH:mm strings or UTC.
+        && data.startTime is int && data.startTime >= 0 && data.startTime <= 1439
+        && data.endTime is int && data.endTime > data.startTime && data.endTime <= 1439
+        && data.slotDurationMinutes is int && data.slotDurationMinutes >= 5 && data.slotDurationMinutes <= 180
+        && data.slotDurationMinutes % 5 == 0 && data.slotDurationMinutes <= data.endTime - data.startTime
+        && data.active is bool && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    match /doctors/{doctorId}/schedules/{scheduleId} {
+      // Patients must query this doctor's schedules with where('active', '==', true).
+      // Schedule reads validate the full existing Patient profile, not merely its role field.
+      allow read: if isAdmin() || (isPatient()
+        && validSchedulePatient(get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
+        && exists(/databases/$(database)/documents/doctors/$(doctorId))
+        && get(/databases/$(database)/documents/doctors/$(doctorId)).data.active == true
+        && resource.data.active == true);
+      allow create: if isAdmin()
+        && doctorId.matches('^[A-Za-z0-9_-]{1,128}$') && scheduleId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && exists(/databases/$(database)/documents/doctors/$(doctorId)) && validSchedule();
+      allow update: if isAdmin()
+        && doctorId.matches('^[A-Za-z0-9_-]{1,128}$') && scheduleId.matches('^[A-Za-z0-9_-]{1,128}$')
+        && exists(/databases/$(database)/documents/doctors/$(doctorId)) && validSchedule()
+        && request.resource.data.updatedAt > resource.data.updatedAt;
+      allow delete: if false;
+      // IDs live only in the path; the exact six-field schema rejects editable identifier fields.
+      // Rules cannot query all sibling windows. Global overlap prevention is NOT enforced here.
+    }
+
+    // Appointments, other doctor subcollections and all unrelated collections remain denied.
     match /{document=**} {
       allow read, write: if false;
     }

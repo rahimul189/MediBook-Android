@@ -3,6 +3,11 @@
 This step uses Firebase Authentication and the **default Cloud Firestore database**.
 It does not use Realtime Database. No Console changes or rules deployments are performed by the app.
 
+**Doctor CRUD extension:** `firestore.rules` now also contains the locally reviewed doctor
+schema/access rules described in [admin-doctor-firestore.md](admin-doctor-firestore.md).
+The existing Patient profile rules and authentication implementation are preserved. Rule
+publication is a separate owner action, not part of the coding agent's implementation.
+
 ## Manual Firebase Console prerequisites
 
 1. Open https://console.firebase.google.com/ and select the Firebase project associated
@@ -11,8 +16,9 @@ It does not use Realtime Database. No Console changes or rules deployments are p
    **Get started**). Enable **Email/Password**, then **Save**. Email-link login is not needed.
 3. Open **Build > Firestore Database**. If the default database has not been created,
    create it in **production mode**, reviewing the location before confirming.
-4. The reviewed Patient-only creation/owner-read rules must already be published before registration.
-   They require no change for the Admin welcome/logout dashboard; do not redeploy them for routing.
+4. The reviewed Patient creation/owner-read rules must already be published before registration.
+   Routing alone requires no new permissions. Doctor CRUD separately requires review/publication
+   of the full new ruleset; the local file changing does not update deployed rules.
    The manual publication steps below are retained for setup reference only.
 
 ## Exactly how to publish the local rules manually
@@ -21,7 +27,8 @@ It does not use Realtime Database. No Console changes or rules deployments are p
 2. Open the **Rules** tab.
 3. Save a copy of the currently deployed rules outside the repository if they need to be retained.
    Review any existing applications using this database: these rules intentionally deny every
-   collection except a user's own profile and will replace the entire current ruleset.
+   collection except a user's own profile and the specifically allowed doctor operations, and
+   will replace the entire current ruleset. Do not publish during an implementation-only task.
 4. Open the repository-root `firestore.rules` locally. Review its complete contents.
 5. Replace the Console Rules editor contents with the **entire** local file. Do not append it
    to existing permissive rules: overlapping allow rules are combined with OR, not denied by precedence.
@@ -40,9 +47,10 @@ No Firebase CLI deployment or service-account credential is required for this ma
   and be at most 254 characters. Phones are normalized to 7–15 digits with an optional leading `+`.
 - Reads are owner-only direct document reads. Collection listing, profile updates, profile
   deletion, extra fields, forged timestamps, and role changes are denied.
-- No Admin-wide database permissions are enabled. The `admin == true` **custom claim** must
+- No Admin-wide profile permissions are enabled. The `admin == true` **custom claim** must
   only ever be assigned through a trusted administrative process outside Android. A profile role
-  is never an Admin privilege. The current rules let either account read only its own profile.
+  is never an Admin privilege. The rules let either account read only its own user profile;
+  the separately reviewed doctor rules grant only the doctor operations described above.
 - Shared login reloads the Auth account, force-refreshes the ID token (`getIdToken(true)`), and
   reads the owner's profile with `Source.SERVER`. The app applies this strict routing policy:
 
@@ -56,8 +64,8 @@ No Firebase CLI deployment or service-account credential is required for this ma
   A valid profile has exactly the five expected fields, valid name/phone, an email matching the
   authenticated identity, and a Firestore Timestamp. Public registration remains Patient-only,
   even if a valid Admin claim/profile pair is encountered during its final verification.
-- The backend rules, not UI navigation, enforce database access. Future privileged data features
-  need separately reviewed claim-based rules; this dashboard performs no privileged writes.
+- The backend rules, not UI navigation, enforce database access. Doctor CRUD now has explicit
+  claim-based rules. Further privileged data features require their own reviewed rules.
 - Passwords are passed only to Firebase Authentication; they are not stored in Firestore,
   model objects, preferences, instance-state bundles, application logs, or repository state.
 - Firebase manages persistent auth credentials. Each launch and protected-screen re-entry reloads
@@ -69,10 +77,10 @@ No Firebase CLI deployment or service-account credential is required for this ma
   redirected to their own home; a claim/profile mismatch is signed out by the repository.
   No role is accepted from Intent extras, local preferences or saved UI state.
   Existing theme and fixed `Asia/Dhaka` configuration are unchanged.
-- The provisioned Admin account remains **disabled**. This implementation does not enable it,
-  modify its claims/profile, invoke the standalone utility, or change either database's rules.
-  A disabled account must fail authentication; successful live Admin login remains deferred until
-  the owner separately approves and manually enables it. No such approval is assumed here.
+- Authentication account enabling, claim/profile changes and the standalone utility are outside
+  Android development. The owner has reported successful enabled Admin login on a phone.
+  Disabled accounts must still fail authentication. The current doctor implementation updates
+  the local Firestore rules only, never deploys them, and does not change Realtime Database rules.
 
 ## Partial registration and interruption handling
 
@@ -138,7 +146,7 @@ reviewed rules. Immediate revocation would require additional server-enforced ch
 ### Rules checks before production use
 
 Use the Firestore rules simulator or a separately configured Firebase Emulator Suite harness
-(the repository does not install one in this step). SDK client tests should cover:
+(see `tests/firestore` for the isolated local demo-project suite). SDK client tests should cover:
 
 | Request | Expected |
 | --- | --- |
@@ -149,7 +157,8 @@ Use the Firestore rules simulator or a separately configured Firebase Emulator S
 | Blank/oversized name or invalid phone | Denied |
 | Read own profile / read another profile | Allowed / Denied |
 | Query/list users, update any profile field, delete profile | Denied |
-| Read/write unrelated collection, including with Admin claim | Denied in this step |
+| Read/write unrelated collection, including with Admin claim | Denied; only the explicit doctor extension is added |
 
-Rules have not been deployed or emulator-tested by the coding agent. A successful Android
-build verifies compilation only, not live Firebase configuration or authorization behavior.
+Rules have not been deployed by the coding agent. The Step 5 local demo-emulator suite passed
+its doctor-access and Patient-profile regression checks; see `docs/admin-doctor-firestore.md`.
+A successful Android build or emulator test does not verify production Firebase configuration.
