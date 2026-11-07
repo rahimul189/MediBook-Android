@@ -3,8 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Reminders use ordinary short workers, never WorkManager's foreground-service path. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
+        android:name=".MediBookApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -14,6 +18,9 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.MediBook">
+        <service android:name="androidx.work.impl.foreground.SystemForegroundService" tools:node="remove" />
+        <activity android:name=".activities.patient.EmergencyContactActivity" android:exported="false" />
+        <activity android:name=".activities.patient.AirQualityActivity" android:exported="false" />
         <activity android:name=".activities.patient.BookAppointmentActivity" android:exported="false" />
         <activity android:name=".activities.AppointmentsActivity" android:exported="false" />
         <activity android:name=".activities.AppointmentDetailsActivity" android:exported="false" />

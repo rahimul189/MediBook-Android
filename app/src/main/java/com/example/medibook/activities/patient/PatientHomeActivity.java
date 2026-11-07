@@ -43,6 +43,8 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
     private int generation;
     private com.example.medibook.repositories.RealtimeDisplayRepository.Subscription liveDisplay;
     private String liveOwner;
+    private com.example.medibook.system.PatientSystemNotices systemNotices;
+    private com.example.medibook.system.SystemNoticeState noticeState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +53,15 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         setContentView(binding.getRoot());
         AuthUi.applyInsets(this, binding.getRoot());
         repository = AuthRepository.getInstance();
+        noticeState = new ViewModelProvider(this).get(com.example.medibook.system.SystemNoticesViewModel.class).state;
+        systemNotices = new com.example.medibook.system.PatientSystemNotices(this, noticeState,
+                new com.example.medibook.system.PatientSystemNotices.Listener() {
+                    @Override public void onAirplaneState(boolean enabled) { renderAirplane(); }
+                    @Override public void onBatteryLow() {
+                        if (patientVerified) com.google.android.material.snackbar.Snackbar.make(binding.getRoot(),
+                                R.string.battery_low_notice, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
+                    }
+                });
         model = new ViewModelProvider(this).get(PatientDoctorDirectoryViewModel.class);
         pendingFilters = savedInstanceState;
         header = new PatientHomeHeaderAdapter(this, model.getState());
@@ -72,10 +83,13 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         // Recheck on re-entry, not just after login. Never trust an Intent or cached role.
         repository.checkSession();
         repository.addListener(this);
+        systemNotices.start();
     }
 
     @Override
     protected void onStop() {
+        systemNotices.stop();
+        binding.airplaneNotice.setVisibility(View.GONE);
         stopLive();
         stopDirectory();
         repository.removeListener(this);
@@ -93,6 +107,7 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         if (isFinishing()) return;
         String uid = currentUid();
         patientVerified = PatientScreenAccess.authorized(state.loading, state.user, uid);
+        renderAirplane();
         binding.sessionLoading.getRoot().setVisibility(state.loading ? View.VISIBLE : View.GONE);
         binding.patientContent.setVisibility(patientVerified ? View.VISIBLE : View.GONE);
         if (state.loading) { stopLive(); stopDirectory(); header.closeMenus(); header.setPatientName(null); return; }
@@ -141,6 +156,10 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         if (canUseDirectory()) startActivity(new Intent(this, com.example.medibook.activities.AppointmentsActivity.class));
     }
     @Override public void onRetryLive() { if (canUseDirectory()) startLive(); }
+    @Override public void onCallHospital() { if (canUseDirectory()) com.example.medibook.utils.DialIntents.hospital(this); }
+    @Override public void onOpenEmergencyContact() { if (canUseDirectory()) startActivity(new Intent(this, EmergencyContactActivity.class)); }
+    @Override public void onOpenAirQuality() { if (canUseDirectory()) startActivity(new Intent(this, AirQualityActivity.class)); }
+    private void renderAirplane() { binding.airplaneNotice.setVisibility(patientVerified && noticeState.airplane() ? View.VISIBLE : View.GONE); }
     private void stopLive() {
         if (liveDisplay != null) liveDisplay.close();
         liveDisplay = null; liveOwner = null; header.setLiveDisplay(null);

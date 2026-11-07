@@ -50,7 +50,9 @@ dependencies {
     implementation(libs.material)
     implementation(libs.recyclerview)
     implementation(libs.lifecycle.viewmodel)
+    implementation(libs.work.runtime)
     testImplementation(libs.junit)
+    testImplementation(libs.json.test)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }

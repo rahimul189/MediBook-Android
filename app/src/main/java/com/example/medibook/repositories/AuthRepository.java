@@ -184,6 +184,7 @@ public final class AuthRepository {
         checkingExisting = false;
         profileUid = null; checkingUid = null;
         invalidateVerifiedSession();
+        com.example.medibook.local.LocalPatientServices.signOutBestEffort();
         auth.signOut();
         observedUid = currentUid();
         publish(new State(false, null, Error.NONE));
@@ -250,6 +251,7 @@ public final class AuthRepository {
         }
         profileUid = document.getId(); verifiedUid = profileUid;
         verifiedAt = android.os.SystemClock.elapsedRealtime(); tokenExpiresAt = expiresAt;
+        com.example.medibook.local.LocalPatientServices.verifiedBestEffort(profileUid, result.user.getRole());
         publish(new State(false, result.user, Error.NONE));
     }
 
@@ -271,6 +273,7 @@ public final class AuthRepository {
         android.util.Log.w("MediBookAuth", "Authentication/session failure: " + error.name());
         invalidateVerifiedSession();
         profileUid = null; checkingUid = null;
+        com.example.medibook.local.LocalPatientServices.signOutBestEffort();
         auth.signOut();
         observedUid = currentUid(); changingAccount = false;
         checkingExisting = false;

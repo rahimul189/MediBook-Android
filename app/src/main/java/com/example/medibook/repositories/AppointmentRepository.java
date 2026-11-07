@@ -150,7 +150,9 @@ public final class AppointmentRepository {
         return at(appointment(id).get(Source.SERVER), "Read appointment", appointment(id).getPath()).continueWith(task -> {
             if (!task.isSuccessful()) throw task.getException();
             requireOwner(owner); confirmed(task.getResult());
-            return AppointmentMapper.fromSnapshot(task.getResult());
+            Appointment value = AppointmentMapper.fromSnapshot(task.getResult());
+            com.example.medibook.local.LocalPatientServices.appointmentBestEffort(owner, value);
+            return value;
         });
     }
 
@@ -165,6 +167,7 @@ public final class AppointmentRepository {
             List<Appointment> entries = new ArrayList<>();
             for (DocumentSnapshot doc : task.getResult()) entries.add(AppointmentMapper.fromSnapshot(doc));
             entries.sort(Comparator.comparing(Appointment::getStartAt).thenComparing(Appointment::getId));
+            if (!admin) com.example.medibook.local.LocalPatientServices.listBestEffort(owner, entries);
             return Collections.unmodifiableList(entries);
         });
     }

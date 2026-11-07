@@ -6,6 +6,9 @@
     <include android:id="@+id/sessionLoading" layout="@layout/view_patient_session_loading" />
     <LinearLayout android:id="@+id/content" android:layout_width="match_parent" android:layout_height="0dp"
         android:layout_weight="1" android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+        <com.google.android.material.button.MaterialButton android:id="@+id/remindersButton" style="@style/Widget.MediBook.TextButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/reminder_enable"
+            android:visibility="gone" />
         <Spinner android:id="@+id/statusFilter" android:layout_width="match_parent" android:layout_height="48dp"
             android:contentDescription="@string/appointment_status_filter" />
         <com.google.android.material.textfield.TextInputLayout android:id="@+id/doctorFilterLayout" style="@style/Widget.MediBook.Input" android:layout_width="match_parent"

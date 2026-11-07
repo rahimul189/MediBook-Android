@@ -37,6 +37,13 @@ public final class AppointmentsActivity extends AppointmentSessionActivity {
     private boolean admin, initialized, loading;
     private long date = -1;
     private int error;
+    private androidx.appcompat.app.AlertDialog reminderDialog;
+    private String permissionOwner, permissionEpoch;
+    private Boolean permissionResult;
+    private final androidx.activity.result.ActivityResultLauncher<String> notificationPermission = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), granted -> {
+                permissionResult = granted; consumePermissionResult();
+            });
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable clock = new Runnable() {
         @Override public void run() { if (canAccess()) render(); handler.postDelayed(this, 30_000); }
@@ -63,6 +70,7 @@ public final class AppointmentsActivity extends AppointmentSessionActivity {
             @Override public void afterTextChanged(Editable value) { }
         });
         binding.refreshButton.setOnClickListener(view -> { if (canAccess() && !loading) refresh(); });
+        binding.remindersButton.setOnClickListener(view -> manageReminders());
         binding.dateButton.setOnClickListener(view -> {
             if (!canAccess() || !admin) return;
             AppointmentUi.pickDate(this, date < 0 ? AppointmentUi.today() : date, (y, m, d) -> {
@@ -74,6 +82,7 @@ public final class AppointmentsActivity extends AppointmentSessionActivity {
             date = -1; binding.dateButton.setText(R.string.appointment_all_dates); if (canAccess()) render();
         });
         if (state != null) {
+            permissionOwner = state.getString("permissionOwner"); permissionEpoch = state.getString("permissionEpoch");
             date = state.getLong("filterDate", -1);
             if (date >= 0) binding.dateButton.setText(AppointmentUi.date(date));
             binding.doctorFilter.setText(state.getString("filterDoctor", ""));
@@ -87,12 +96,68 @@ public final class AppointmentsActivity extends AppointmentSessionActivity {
         binding.toolbar.setTitle(admin ? R.string.appointment_manage : R.string.appointment_my);
         binding.doctorFilterLayout.setVisibility(admin ? View.VISIBLE : View.GONE);
         binding.dateFilters.setVisibility(admin ? View.VISIBLE : View.GONE);
+        renderReminderButton(); consumePermissionResult();
         if (!initialized) { initialized = true; binding.statusFilter.setSelection(admin ? 0 : 1); }
         refresh();
     }
     @Override protected void clearSessionViews() {
         entries = Collections.emptyList(); if (adapter != null) adapter.submit(entries, false);
         binding.message.setText(null);
+        if (reminderDialog != null) { reminderDialog.dismiss(); reminderDialog = null; }
+    }
+    private void renderReminderButton() {
+        binding.remindersButton.setVisibility(admin ? View.GONE : View.VISIBLE);
+        binding.remindersButton.setText(com.example.medibook.local.LocalPatientServices.get().remindersEnabled(owner)
+                && com.example.medibook.reminders.ReminderNotifications.allowed(this) ? R.string.reminder_enabled : R.string.reminder_enable);
+    }
+    private void manageReminders() {
+        if (!canAccess() || admin) return;
+        com.example.medibook.local.LocalPatientServices local = com.example.medibook.local.LocalPatientServices.get();
+        permissionOwner = owner; permissionEpoch = local.epoch(owner);
+        boolean enabled = local.remindersEnabled(owner) && com.example.medibook.reminders.ReminderNotifications.allowed(this);
+        reminderDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(enabled ? R.string.reminder_turn_off : R.string.reminder_permission_title)
+                .setMessage(enabled ? R.string.reminder_off_message : R.string.reminder_explanation)
+                .setNegativeButton(R.string.cancel_button, null)
+                .setPositiveButton(enabled ? R.string.reminder_turn_off : R.string.reminder_allow, (dialog, which) -> {
+                    if (!canAccess() || !local.matches(permissionOwner, permissionEpoch)) return;
+                    if (enabled) {
+                        local.enableReminders(owner, false); renderReminderButton(); notice(R.string.reminder_disabled, false);
+                    } else if (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(
+                            this, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+                    } else if (!com.example.medibook.reminders.ReminderNotifications.allowed(this)) {
+                        reminderDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                                .setTitle(R.string.reminder_settings).setMessage(R.string.reminder_settings_explanation)
+                                .setNegativeButton(R.string.cancel_button, null)
+                                .setPositiveButton(R.string.reminder_settings, (d, w) -> openNotificationSettings()).show();
+                    } else enableReminders();
+                }).show();
+    }
+    private void consumePermissionResult() {
+        if (permissionResult == null || !canAccess() || admin) return;
+        boolean granted = permissionResult; permissionResult = null;
+        if (!com.example.medibook.local.LocalPatientServices.get().matches(permissionOwner, permissionEpoch)) return;
+        if (granted && com.example.medibook.reminders.ReminderNotifications.allowed(this)) enableReminders();
+        else { renderReminderButton(); notice(R.string.reminder_denied, true); }
+    }
+    private void enableReminders() {
+        if (!canAccess() || admin || !com.example.medibook.local.LocalPatientServices.get().matches(permissionOwner, permissionEpoch)) return;
+        com.example.medibook.local.LocalPatientServices.get().enableReminders(owner, true);
+        renderReminderButton(); notice(R.string.reminder_on_message, false);
+    }
+    private void notice(int text, boolean settings) {
+        com.google.android.material.snackbar.Snackbar bar = com.google.android.material.snackbar.Snackbar.make(binding.getRoot(), text,
+                com.google.android.material.snackbar.Snackbar.LENGTH_LONG);
+        if (settings) bar.setAction(R.string.reminder_settings, view -> openNotificationSettings());
+        bar.show();
+    }
+    private void openNotificationSettings() {
+        if (!canAccess() || admin) return;
+        Intent intent = android.os.Build.VERSION.SDK_INT >= 26
+                ? new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName())
+                : new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + getPackageName()));
+        try { startActivity(intent); } catch (android.content.ActivityNotFoundException unavailable) { notice(R.string.reminder_denied, false); }
     }
     private void refresh() {
         loading = true; error = 0; render();
@@ -133,6 +198,7 @@ public final class AppointmentsActivity extends AppointmentSessionActivity {
     @Override protected void onStart() { super.onStart(); handler.post(clock); }
     @Override protected void onStop() { handler.removeCallbacks(clock); super.onStop(); }
     @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("permissionOwner", permissionOwner); state.putString("permissionEpoch", permissionEpoch);
         state.putLong("filterDate", date);
         state.putString("filterDoctor", binding.doctorFilter.getText() == null ? "" : binding.doctorFilter.getText().toString());
         state.putInt("filterStatus", binding.statusFilter.getSelectedItemPosition());

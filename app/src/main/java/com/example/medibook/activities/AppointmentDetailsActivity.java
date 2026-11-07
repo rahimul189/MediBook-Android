@@ -51,6 +51,11 @@ public final class AppointmentDetailsActivity extends AppointmentSessionActivity
     @Override protected View protectedContent() { return binding.content; }
     @Override protected View sessionLoading() { return binding.sessionLoading.getRoot(); }
     @Override protected void onVerifiedSession() {
+        if (getIntent().hasExtra("reminderOwner") && !com.example.medibook.local.LocalPatientServices.get().matches(
+                getIntent().getStringExtra("reminderOwner"), getIntent().getStringExtra("reminderEpoch"))) {
+            // Stale notification taps after logout/account switching never load its appointment.
+            finish(); return;
+        }
         if (!DoctorMapper.isValidId(id)) { binding.message.setText(R.string.appointment_invalid); return; }
         if (operation.operation != null) { busy = true; render(); observe(); } else load();
     }

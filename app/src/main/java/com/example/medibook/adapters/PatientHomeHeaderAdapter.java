@@ -25,6 +25,9 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
         void onSpecializationChanged(String specialization);
         void onSearchSubmitted();
         void onOpenAppointments();
+        void onCallHospital();
+        void onOpenEmergencyContact();
+        void onOpenAirQuality();
         void onRetryLive();
     }
 
@@ -91,6 +94,9 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
             ViewCompat.setAccessibilityHeading(binding.welcomeMessage, true);
             ViewCompat.setAccessibilityHeading(binding.directoryHeading, true);
             binding.appointmentsButton.setOnClickListener(view -> listener.onOpenAppointments());
+            binding.hospitalButton.setOnClickListener(view -> listener.onCallHospital());
+            binding.contactButton.setOnClickListener(view -> listener.onOpenEmergencyContact());
+            binding.airQualityButton.setOnClickListener(view -> listener.onOpenAirQuality());
             binding.liveUpdates.liveRetry.setOnClickListener(view -> listener.onRetryLive());
             binding.searchInput.setOnEditorActionListener((view, action, event) -> {
                 if (action != EditorInfo.IME_ACTION_SEARCH) return false;
