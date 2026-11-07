@@ -27,10 +27,6 @@
                         <com.google.android.material.button.MaterialButton android:id="@+id/retryButton"
                             style="@style/Widget.MediBook.TextButton" android:layout_width="match_parent"
                             android:layout_height="wrap_content" android:text="@string/patient_directory_retry" />
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/errorBackButton" style="@style/Widget.MediBook.TextButton"
-                            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp"
-                            android:text="@string/patient_profile_back" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -41,7 +37,7 @@
                         app:cardBackgroundColor="@color/medibook_teal_container">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                             android:orientation="vertical" android:padding="24dp">
-                            <ImageView android:layout_width="64dp" android:layout_height="64dp" android:src="@drawable/ic_doctor"
+                            <ImageView android:id="@+id/doctorImage" android:layout_width="88dp" android:layout_height="88dp" android:src="@drawable/avatar_doctor"
                                 android:importantForAccessibility="no" />
                             <TextView android:id="@+id/profileStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
                                 android:layout_marginTop="16dp" android:text="@string/doctor_active_status"
@@ -71,14 +67,9 @@
                                 android:textAppearance="@style/TextAppearance.MediBook.Body" />
                             <com.google.android.material.divider.MaterialDivider android:layout_width="match_parent"
                                 android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="20dp" />
-                            <TextView android:id="@+id/feeHeading" android:layout_width="match_parent" android:layout_height="wrap_content"
-                                android:text="@string/doctor_fee_label" android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                                android:textColor="@color/medibook_text" />
                             <TextView android:id="@+id/consultationFee" android:layout_width="match_parent" android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleLarge" android:textColor="@color/medibook_teal_dark" />
-                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
-                                android:text="@string/patient_profile_fee_currency_hint" android:textAppearance="@style/TextAppearance.MediBook.Body" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -118,14 +109,7 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bookAppointmentButton" style="@style/Widget.MediBook.PrimaryButton"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="@string/patient_profile_book_placeholder" android:enabled="false" />
-                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
-                        android:gravity="center" android:text="@string/patient_profile_booking_notice"
-                        android:textAppearance="@style/TextAppearance.MediBook.Body" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/backToDirectoryButton" style="@style/Widget.MediBook.TextButton"
-                        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
-                        android:text="@string/patient_profile_back" />
+                        android:text="@string/patient_profile_book_placeholder" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

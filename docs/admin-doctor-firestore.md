@@ -2,15 +2,15 @@
 
 ## Deployment boundary
 
-The Android integration and repository-root `firestore.rules` are local changes only.
-**No rules deployment, production doctor write, Auth account/claim change or Realtime Database
-operation is part of development/testing.** The deployed Patient-only rules will continue to
-deny doctor access until the project owner separately reviews/tests and publishes the new
-complete ruleset. A successful build is not evidence of deployed authorization or a live save.
+**No production Firebase deployment/data/claim change is performed by the development agent.**
+The user has deployed Batch 1 Rules and verified publishing/booking on device. Batch 2 adds the
+optional `imageUrl` field and requires another manual full Rules publication before new Doctor
+Add/Edit saves. RTDB setup and current display limitations are in [Batch 2 setup](batch2-live-display.md).
+The remaining milestone notes below describe the original CRUD integration, not a new live check.
 
 ## Schema: `doctors/{doctorId}`
 
-Exactly these eight fields are allowed; ID comes from the document path, not a mutable field:
+These eight fields remain required; optional `imageUrl` is also allowed. ID comes from the document path:
 
 | Field | Stored value |
 | --- | --- |
@@ -22,6 +22,7 @@ Exactly these eight fields are allowed; ID comes from the document path, not a m
 | `active` | Boolean; a new form defaults to false |
 | `createdAt` | Firebase server timestamp on create; immutable on update |
 | `updatedAt` | Firebase server timestamp on every write; later than the previous version on update |
+| `imageUrl` (optional) | Blank or validated public HTTPS image URL, ≤2048 characters; old records may omit it |
 
 Fee decision: Firestore cannot directly store `BigDecimal`. Integer hundredths avoid binary
 floating-point rounding and allow strict integer bounds in Rules. UI `500.25` is stored as
@@ -99,8 +100,9 @@ No Firebase login, project selection, private key or production configuration is
 Step 77 migrates Rules integration tests to Java/JUnit using the official Firestore client REST API,
 not the Admin SDK. Run `.\gradlew.bat :firestore-rules-tests:test --console=plain`; Java 21+ and the
 pinned Java emulator JAR are required, not JavaScript/Node. The original 15 cases are retained in
-`DoctorRulesTest`, alongside the 22 Schedule cases, four transport/authorization canaries and the
-Step 78 exact-ID Patient profile-query regression (**42 total**).
+`DoctorRulesTest`, alongside the 22 Schedule cases, four transport/authorization canaries, the
+Step 78 exact-ID Patient profile-query regression and 23 Step 86 appointment cases
+(**65 total**). Step 86 changes only the local `firestore.rules`; no deployment is implied.
 See `tests/firestore/COVERAGE.md` for the one-for-one security coverage map and current limitations.
 
 Historical verification for the Doctor-only implementation: 68 Android unit tests and 15 Firestore emulator

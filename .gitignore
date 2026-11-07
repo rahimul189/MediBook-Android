@@ -21,5 +21,33 @@ local.properties
 /.idea/runConfigurations.xml
 /.idea/vcs.xml
 
-# Local Firebase application configuration
-/app/google-services.json
+# Firebase Android client configuration (app/google-services.json) is intentionally versioned.
+# Never commit privileged Firebase/Admin credentials or local secrets.
+**/*service-account*.json
+**/*service_account*.json
+**/*serviceAccount*.json
+**/*firebase-adminsdk*.json
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Machine-specific IDE settings, including appInsightsSettings.xml.
+/.idea/
+
+# Generated output and local temporary files, including future Gradle modules.
+**/build/
+/.firebase/
+*.apk
+*.aab
+*.apks
+*.log
+*.tmp
+*.temp
+*.bak
+*~

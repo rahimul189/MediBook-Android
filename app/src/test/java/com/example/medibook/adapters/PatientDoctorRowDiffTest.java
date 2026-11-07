@@ -135,6 +135,15 @@ public class PatientDoctorRowDiffTest {
         assertEquals(0, recorder.inserted);
     }
 
+    @Test public void imageUrlChangesRefreshTheAvatarWithoutReplacingSearchHeader() {
+        Doctor doctor = doctor("a", "Fixture Alpha", "Fixture Cardiology");
+        PatientDoctorDirectoryViewModel model = modelWith(doctor);
+        State before = model.getState();
+        model.showDirectory(OWNER, java.util.Collections.singletonList(doctor.withImageUrl("https://example.org/doctor.jpg")));
+        Recorder recorder = dispatch(before, model.getState());
+        assertEquals(1, recorder.changed); assertEquals(0, recorder.inserted); assertEquals(0, recorder.removed);
+    }
+
     private Doctor doctor(String id, String name, String specialization) {
         return new Doctor(id, name, specialization, "Fixture qualification",
                 new BigDecimal("500.00"), "", true);

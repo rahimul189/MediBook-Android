@@ -66,6 +66,7 @@ final class PatientDoctorRowDiff extends DiffUtil.Callback {
         return oldDoctor.getName().equals(newDoctor.getName())
                 && oldDoctor.getSpecialization().equals(newDoctor.getSpecialization())
                 && oldDoctor.getQualifications().equals(newDoctor.getQualifications())
-                && oldDoctor.getConsultationFee().equals(newDoctor.getConsultationFee());
+                && oldDoctor.getConsultationFee().equals(newDoctor.getConsultationFee())
+                && oldDoctor.getImageUrl().equals(newDoctor.getImageUrl());
     }
 }

@@ -157,11 +157,12 @@ Use the Firestore rules simulator or a separately configured Firebase Emulator S
 | Blank/oversized name or invalid phone | Denied |
 | Read own profile / read another profile | Allowed / Denied |
 | Query/list users, update any profile field, delete profile | Denied |
-| Read/write unrelated collection, including with Admin claim | Denied; only the explicit doctor extension is added |
+| Read/write unrelated collection, including with Admin claim | Denied; only the explicit doctor, schedule and appointment extensions are added |
 
-Rules have not been deployed by the coding agent. The Step 5 local demo-emulator suite passed
-its doctor-access and Patient-profile regression checks; see `docs/admin-doctor-firestore.md`.
-The current Node-free replacement runs with `.\gradlew.bat :firestore-rules-tests:test --console=plain`.
+Rules have not been deployed by the coding agent. The local Java emulator suite passed its
+doctor-access, Patient-profile, schedule and Step 86 appointment checks; see
+`docs/admin-doctor-firestore.md` and `tests/firestore/README.md`. The Node-free suite runs with
+`.\gradlew.bat :firestore-rules-tests:test --console=plain`.
 It uses authenticated/anonymous REST clients that evaluate Rules, not Admin SDK permission assertions;
 no real Auth accounts or claims are changed. See `tests/firestore/README.md` for Java emulator setup.
 A successful Android build or emulator test does not verify production Firebase configuration.

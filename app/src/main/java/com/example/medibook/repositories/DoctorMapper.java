@@ -2,6 +2,7 @@ package com.example.medibook.repositories;
 
 import com.example.medibook.models.Doctor;
 import com.example.medibook.utils.DoctorFormValidation;
+import com.example.medibook.utils.DoctorImageUrl;
 import com.google.firebase.Timestamp;
 
 import java.math.BigDecimal;
@@ -23,7 +24,8 @@ public final class DoctorMapper {
     }
 
     public static Doctor fromMap(String id, Map<String, Object> data) {
-        if (!isValidId(id) || data == null || !data.keySet().equals(FIELDS)
+        if (!isValidId(id) || data == null || !data.keySet().containsAll(FIELDS)
+                || data.keySet().stream().anyMatch(key -> !FIELDS.contains(key) && !"imageUrl".equals(key))
                 || !(data.get("name") instanceof String) || !(data.get("specialization") instanceof String)
                 || !(data.get("qualifications") instanceof String) || !(data.get("biography") instanceof String)
                 || !(data.get("active") instanceof Boolean) || !(data.get("createdAt") instanceof Timestamp)
@@ -40,9 +42,12 @@ public final class DoctorMapper {
                 (String) data.get("specialization"), (String) data.get("qualifications"),
                 fee.toPlainString(), (String) data.get("biography"));
         if (!validation.isValid()) throw invalid();
+        // Bad legacy URLs affect only the avatar, never the availability of a Doctor profile.
+        String image = data.get("imageUrl") instanceof String ? (String) data.get("imageUrl") : "";
+        if (!DoctorImageUrl.isValid(image)) image = "";
         return new Doctor(id, (String) data.get("name"), (String) data.get("specialization"),
                 (String) data.get("qualifications"), fee, (String) data.get("biography"),
-                (Boolean) data.get("active"), createdAt, updatedAt);
+                (Boolean) data.get("active"), image, createdAt, updatedAt);
     }
 
     public static Map<String, Object> createMap(Doctor draft, Object serverTimestamp) {
@@ -55,13 +60,14 @@ public final class DoctorMapper {
     public static Map<String, Object> updateMap(Doctor draft, Object serverTimestamp) {
         if (!isValidId(draft.getId()) || !DoctorFormValidation.validate(draft.getName(),
                 draft.getSpecialization(), draft.getQualifications(), draft.getConsultationFee().toPlainString(),
-                draft.getBiography()).isValid()) throw invalid();
+                draft.getBiography()).isValid() || !DoctorImageUrl.isValid(draft.getImageUrl())) throw invalid();
         Map<String, Object> data = new HashMap<>();
         data.put("name", draft.getName());
         data.put("specialization", draft.getSpecialization());
         data.put("qualifications", draft.getQualifications());
         data.put("consultationFee", draft.getConsultationFee().movePointRight(2).longValueExact());
         data.put("biography", draft.getBiography());
+        data.put("imageUrl", draft.getImageUrl());
         data.put("active", draft.isActive());
         data.put("updatedAt", serverTimestamp);
         return data;

@@ -25,7 +25,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
 
-/** Live Patient profile and weekly schedules; no booking or writes. */
+/** Live Patient profile and weekly schedules, with navigation to the protected booking flow. */
 public class DoctorProfileActivity extends AppCompatActivity implements AuthRepository.Listener {
     private ActivityDoctorProfileBinding binding;
     private AuthRepository repository;
@@ -52,16 +52,24 @@ public class DoctorProfileActivity extends AppCompatActivity implements AuthRepo
         } catch (RuntimeException malformed) { validContext = false; }
         binding.toolbar.setNavigationOnClickListener(view -> finish());
         binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.actionAppointments) {
+                if (canRead()) startActivity(new android.content.Intent(this, com.example.medibook.activities.AppointmentsActivity.class));
+                return true;
+            }
             if (item.getItemId() != R.id.actionLogout) return false;
             repository.signOut();
             return true;
         });
-        binding.backToDirectoryButton.setOnClickListener(view -> finish());
-        binding.errorBackButton.setOnClickListener(view -> finish());
         binding.retryButton.setOnClickListener(view -> { if (canRead() && validContext) startProfile(); });
         binding.scheduleRetryButton.setOnClickListener(view -> { if (canRead() && doctor != null) startSchedules(); });
-        // Intentionally no Book Appointment click handler; it remains disabled and labelled as future work.
-        for (View heading : new View[]{binding.doctorName, binding.qualificationsHeading, binding.feeHeading,
+        binding.bookAppointmentButton.setOnClickListener(view -> {
+            if (canRead() && doctor != null && doctor.isActive()) {
+                android.content.Intent intent = new android.content.Intent(this, BookAppointmentActivity.class);
+                PatientDoctorProfileContract.putDoctorContext(intent, owner, doctor);
+                startActivity(intent);
+            }
+        });
+        for (View heading : new View[]{binding.doctorName, binding.qualificationsHeading,
                 binding.aboutHeading, binding.scheduleHeading, binding.errorHeading}) {
             ViewCompat.setAccessibilityHeading(heading, true);
         }
@@ -111,13 +119,14 @@ public class DoctorProfileActivity extends AppCompatActivity implements AuthRepo
     }
 
     private void renderProfile() {
+        com.example.medibook.utils.DoctorImages.load(binding.doctorImage, doctor.getImageUrl());
         binding.profileStatus.setText(R.string.doctor_active_status);
         binding.profileNotice.setVisibility(View.GONE);
         binding.timezoneHint.setText(getString(R.string.patient_profile_timezone, AppConstants.HOSPITAL_TIME_ZONE_ID));
         binding.doctorName.setText(doctor.getName());
         binding.specialization.setText(doctor.getSpecialization());
         binding.qualifications.setText(doctor.getQualifications());
-        binding.consultationFee.setText(PatientDoctorDirectory.feeText(doctor));
+        binding.consultationFee.setText(getString(R.string.doctor_fee_amount, PatientDoctorDirectory.feeText(doctor)));
         binding.biography.setText(doctor.getBiography().isEmpty() ? getString(R.string.patient_profile_biography_empty) : doctor.getBiography());
     }
 
@@ -129,6 +138,7 @@ public class DoctorProfileActivity extends AppCompatActivity implements AuthRepo
         binding.scheduleText.setText(null);
     }
     private void stopProfile() {
+        com.example.medibook.utils.DoctorImages.clear(binding.doctorImage);
         generation++;
         stopSchedules();
         if (doctorListener != null) doctorListener.remove();

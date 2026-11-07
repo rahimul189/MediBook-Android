@@ -60,6 +60,7 @@ public final class PatientDoctorAdapter extends RecyclerView.Adapter<RecyclerVie
             ItemPatientDoctorBinding binding = ((DoctorHolder) holder).binding;
             Context context = holder.itemView.getContext();
             binding.doctorName.setText(doctor.getName());
+            com.example.medibook.utils.DoctorImages.load(binding.doctorImage, doctor.getImageUrl());
             binding.specialization.setText(doctor.getSpecialization());
             binding.qualifications.setText(context.getString(R.string.patient_doctor_qualifications, doctor.getQualifications()));
             binding.consultationFee.setText(context.getString(R.string.doctor_fee_amount, PatientDoctorDirectory.feeText(doctor)));
@@ -100,6 +101,11 @@ public final class PatientDoctorAdapter extends RecyclerView.Adapter<RecyclerVie
                 }
                 break;
         }
+    }
+
+    @Override public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        if (holder instanceof DoctorHolder) com.example.medibook.utils.DoctorImages.clear(((DoctorHolder) holder).binding.doctorImage);
+        super.onViewRecycled(holder);
     }
 
     private static final class DoctorHolder extends RecyclerView.ViewHolder {

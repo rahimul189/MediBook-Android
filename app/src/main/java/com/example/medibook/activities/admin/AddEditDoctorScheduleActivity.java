@@ -75,7 +75,6 @@ public class AddEditDoctorScheduleActivity extends AppCompatActivity implements 
         binding = ActivityAddEditDoctorScheduleBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         AuthUi.applyInsets(this, binding.getRoot());
-        ViewCompat.setAccessibilityHeading(binding.formHeading, true);
         authRepository = AuthRepository.getInstance();
         model = new ViewModelProvider(this).get(DoctorScheduleEditorViewModel.class);
         String scheduleId = null;
@@ -105,7 +104,6 @@ public class AddEditDoctorScheduleActivity extends AppCompatActivity implements 
         if (day >= 1 && day <= 7) binding.dayInput.setText(DoctorScheduleUi.day(this, day), false);
         int title = editing ? R.string.schedule_edit_title : R.string.schedule_add_button;
         binding.toolbar.setTitle(title);
-        binding.formHeading.setText(title);
         if (!invalidContext) binding.doctorHeading.setText(getString(R.string.schedule_doctor_heading, doctorName));
         binding.timezoneHint.setText(getString(R.string.schedule_timezone_hint, AppConstants.HOSPITAL_TIME_ZONE_ID));
         renderTimes();
@@ -194,7 +192,6 @@ public class AddEditDoctorScheduleActivity extends AppCompatActivity implements 
         if (!canAccess()) return;
         int title = state.editing ? R.string.schedule_edit_title : R.string.schedule_add_button;
         binding.toolbar.setTitle(title);
-        binding.formHeading.setText(title);
         if (state.doctorName != null) {
             doctorName = state.doctorName;
             binding.doctorHeading.setText(getString(R.string.schedule_doctor_heading, doctorName));

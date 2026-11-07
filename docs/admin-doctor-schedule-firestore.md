@@ -114,7 +114,8 @@ starts its own emulator for `demo-medibook` at `127.0.0.1:8080`, and sends authe
 client REST requests that actually evaluate Rules. Fixture-only bypass is not permission evidence.
 No production accounts, service credentials or deployments are used. See `tests/firestore/README.md`
 and `tests/firestore/COVERAGE.md` for setup, current test results, the original 37-case replacement
-mapping and the Step 78 profile-query regression (42 current tests).
+mapping, the Step 78 profile-query regression and the 23 Step 86 appointment cases
+(65 current tests). Step 86 changes only the local `firestore.rules`; no deployment is implied.
 
 Java tests cover mapping/strict types, ISO/minute/duration boundaries, immutable copies, half-open
 overlaps and different durations, sorted immutable directories, server-version identity, duplicate

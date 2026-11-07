@@ -50,7 +50,6 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         binding = ActivityAddEditDoctorBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         AuthUi.applyInsets(this, binding.getRoot());
-        ViewCompat.setAccessibilityHeading(binding.formHeading, true);
         authRepository = AuthRepository.getInstance();
         model = new ViewModelProvider(this).get(DoctorEditorViewModel.class);
         String id = savedInstanceState == null ? getIntent().getStringExtra(EXTRA_DOCTOR_ID)
@@ -126,7 +125,6 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         if (!adminVerified || isFinishing()) return;
         int title = state.editing ? R.string.edit_doctor_title : R.string.add_doctor_button;
         binding.toolbar.setTitle(title);
-        binding.formHeading.setText(title);
         if (state.original != null && !state.loading && state.error == DoctorRepository.Error.NONE
                 && state.revision != populatedRevision) {
             populateForm(state.original);
@@ -138,6 +136,7 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         binding.qualificationsLayout.setEnabled(enabled);
         binding.feeLayout.setEnabled(enabled);
         binding.biographyLayout.setEnabled(enabled);
+        binding.imageUrlLayout.setEnabled(enabled);
         binding.activeSwitch.setEnabled(enabled);
         binding.cancelButton.setEnabled(!state.saving);
         binding.saveButton.setEnabled(state.canSave());
@@ -171,6 +170,8 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         binding.qualificationsInput.setText(doctor.getQualifications());
         binding.feeInput.setText(doctor.getConsultationFee().toPlainString());
         binding.biographyInput.setText(doctor.getBiography());
+        binding.imageUrlInput.setText(doctor.getImageUrl());
+        binding.imageUrlLayout.setError(null);
         binding.activeSwitch.setChecked(doctor.isActive());
         binding.nameLayout.setError(null);
         binding.specializationLayout.setError(null);
@@ -184,6 +185,9 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         DoctorFormValidation.Result result = DoctorFormValidation.validate(text(binding.nameInput),
                 text(binding.specializationInput), text(binding.qualificationsInput), text(binding.feeInput),
                 text(binding.biographyInput));
+        String imageUrl = text(binding.imageUrlInput).trim();
+        boolean validImage = com.example.medibook.utils.DoctorImageUrl.isValid(imageUrl);
+        binding.imageUrlLayout.setError(validImage ? null : getString(R.string.doctor_image_url_error));
         showError(binding.nameLayout, result.nameError,
                 R.string.doctor_error_name_required, R.string.doctor_error_name_length);
         showError(binding.specializationLayout, result.specializationError,
@@ -198,9 +202,10 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
                 : result.specializationError != DoctorFormValidation.Error.NONE ? binding.specializationInput
                 : result.qualificationsError != DoctorFormValidation.Error.NONE ? binding.qualificationsInput
                 : result.feeError != DoctorFormValidation.Error.NONE ? binding.feeInput
-                : result.biographyError != DoctorFormValidation.Error.NONE ? binding.biographyInput : null;
+                : result.biographyError != DoctorFormValidation.Error.NONE ? binding.biographyInput
+                : !validImage ? binding.imageUrlInput : null;
         if (firstInvalid != null) firstInvalid.requestFocus();
-        else model.save(result.toDoctor(model.getState().doctorId, binding.activeSwitch.isChecked()));
+        else model.save(result.toDoctor(model.getState().doctorId, binding.activeSwitch.isChecked()).withImageUrl(imageUrl));
     }
 
     private void showError(TextInputLayout layout, DoctorFormValidation.Error error, int required, int length) {
@@ -235,13 +240,14 @@ public class AddEditDoctorActivity extends AppCompatActivity implements AuthRepo
         if (original == null) {
             return !text(binding.nameInput).isEmpty() || !text(binding.specializationInput).isEmpty()
                     || !text(binding.qualificationsInput).isEmpty() || !text(binding.feeInput).isEmpty()
-                    || !text(binding.biographyInput).isEmpty() || binding.activeSwitch.isChecked();
+                    || !text(binding.biographyInput).isEmpty() || !text(binding.imageUrlInput).isEmpty() || binding.activeSwitch.isChecked();
         }
         return !text(binding.nameInput).equals(original.getName())
                 || !text(binding.specializationInput).equals(original.getSpecialization())
                 || !text(binding.qualificationsInput).equals(original.getQualifications())
                 || !text(binding.feeInput).equals(original.getConsultationFee().toPlainString())
                 || !text(binding.biographyInput).equals(original.getBiography())
+                || !text(binding.imageUrlInput).equals(original.getImageUrl())
                 || binding.activeSwitch.isChecked() != original.isActive();
     }
 

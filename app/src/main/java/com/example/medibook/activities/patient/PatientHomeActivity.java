@@ -41,6 +41,8 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
     private final com.example.medibook.repositories.PatientDoctorRepository live = new com.example.medibook.repositories.PatientDoctorRepository();
     private com.google.firebase.firestore.ListenerRegistration subscription;
     private int generation;
+    private com.example.medibook.repositories.RealtimeDisplayRepository.Subscription liveDisplay;
+    private String liveOwner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,7 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
 
     @Override
     protected void onStop() {
+        stopLive();
         stopDirectory();
         repository.removeListener(this);
         model.removeListener(this);
@@ -92,9 +95,10 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
         patientVerified = PatientScreenAccess.authorized(state.loading, state.user, uid);
         binding.sessionLoading.getRoot().setVisibility(state.loading ? View.VISIBLE : View.GONE);
         binding.patientContent.setVisibility(patientVerified ? View.VISIBLE : View.GONE);
-        if (state.loading) { stopDirectory(); header.closeMenus(); header.setPatientName(null); return; }
+        if (state.loading) { stopLive(); stopDirectory(); header.closeMenus(); header.setPatientName(null); return; }
 
         if (!patientVerified) {
+            stopLive();
             stopDirectory();
             model.endSession();
             pendingFilters = null;
@@ -113,6 +117,7 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
             }
             onDirectoryChanged(model.getState());
             if (subscription == null) startDirectory();
+            if (liveDisplay == null || !uid.equals(liveOwner)) startLive();
         }
     }
 
@@ -132,6 +137,23 @@ public class PatientHomeActivity extends AppCompatActivity implements AuthReposi
     }
 
     @Override public void onSearchChanged(String query) { if (canUseDirectory()) model.setQuery(query); }
+    @Override public void onOpenAppointments() {
+        if (canUseDirectory()) startActivity(new Intent(this, com.example.medibook.activities.AppointmentsActivity.class));
+    }
+    @Override public void onRetryLive() { if (canUseDirectory()) startLive(); }
+    private void stopLive() {
+        if (liveDisplay != null) liveDisplay.close();
+        liveDisplay = null; liveOwner = null; header.setLiveDisplay(null);
+    }
+    private void startLive() {
+        stopLive(); liveOwner = model.getOwner();
+        liveDisplay = com.example.medibook.repositories.RealtimeDisplayRepository.dashboard(liveOwner, false, (status, appointment) -> {
+            if (canUseDirectory()) header.setLiveDisplay(appointment == null && (status == R.string.live_empty
+                    || status == R.string.live_not_configured || status == R.string.live_connecting) ? null
+                    : com.example.medibook.utils.RealtimeDisplayUi.dashboard(this, status, appointment, false),
+                    appointment == null || status != R.string.live_verified);
+        });
+    }
     @Override public void onSpecializationChanged(String value) { if (canUseDirectory()) model.setSpecialization(value); }
     @Override public void onClearFilters() { if (canUseDirectory()) model.clearFilters(); }
 

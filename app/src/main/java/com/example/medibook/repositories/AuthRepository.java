@@ -2,6 +2,7 @@ package com.example.medibook.repositories;
 
 import com.example.medibook.models.UserProfile;
 import com.example.medibook.utils.SessionPolicy;
+import com.example.medibook.utils.VerifiedSessionLease;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.FirebaseAuth;
@@ -33,7 +34,7 @@ public final class AuthRepository {
         NONE, NETWORK, TOO_MANY_REQUESTS, EMAIL_IN_USE, WEAK_PASSWORD,
         INVALID_CREDENTIALS, AUTH_UNAVAILABLE, PERMISSION_DENIED, PROFILE_MISSING,
         INVALID_PROFILE, ROLE_MISMATCH, PROFILE_FAILED_ACCOUNT_REMOVED,
-        PROFILE_FAILED_ACCOUNT_REMAINS, UNKNOWN
+        PROFILE_FAILED_ACCOUNT_REMAINS, SESSION_EXPIRED, UNKNOWN
     }
 
     public static final class State {
@@ -59,9 +60,34 @@ public final class AuthRepository {
     private final Set<Listener> listeners = new HashSet<>();
     private State state = new State(false, null, Error.NONE);
     private int operationId;
+    private String verifiedUid, observedUid, profileUid, checkingUid;
+    private long verifiedAt = -1, tokenExpiresAt;
+    private boolean changingAccount;
+    private boolean checkingExisting;
 
     private AuthRepository() {
+        observedUid = currentUid();
+        auth.addAuthStateListener(firebase -> {
+            String uid = currentUid();
+            if (!java.util.Objects.equals(observedUid, uid)) {
+                observedUid = uid;
+                // SDK state notifications can arrive after the sign-in Task and even its profile
+                // read. Never cancel our own already-verified/current-UID operation as an account swap.
+                if (uid != null && uid.equals(profileUid) && state.user != null) return;
+                invalidateVerifiedSession();
+                if (!state.loading || (!changingAccount && !java.util.Objects.equals(checkingUid, uid))) {
+                    operationId++;
+                    profileUid = null;
+                    publish(new State(false, null, uid == null && (state.user != null || checkingExisting) ? Error.SESSION_EXPIRED : Error.NONE));
+                }
+            }
+        });
+        // A new SDK token invalidates the lease; subsequent navigation rechecks signed claims/profile.
+        auth.addIdTokenListener((FirebaseAuth.IdTokenListener) firebase -> invalidateVerifiedSession());
     }
+
+    private String currentUid() { return auth.getCurrentUser() == null ? null : auth.getCurrentUser().getUid(); }
+    public void invalidateVerifiedSession() { verifiedUid = null; verifiedAt = -1; tokenExpiresAt = 0; }
 
     public static synchronized AuthRepository getInstance() {
         if (instance == null) {
@@ -71,6 +97,9 @@ public final class AuthRepository {
     }
 
     public void addListener(Listener listener) {
+        if (state.user != null && !java.util.Objects.equals(profileUid, currentUid())) {
+            state = new State(false, null, Error.NONE);
+        }
         listeners.add(listener);
         listener.onAuthStateChanged(state);
     }
@@ -82,8 +111,11 @@ public final class AuthRepository {
     public void signIn(String email, String password) {
         if (state.loading) return;
         int operation = beginOperation();
+        checkingExisting = false;
+        changingAccount = true;
         auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
             if (operation != operationId) return;
+            changingAccount = false;
             if (!task.isSuccessful()) {
                 fail(operation, mapError(task.getException()));
                 return;
@@ -95,8 +127,11 @@ public final class AuthRepository {
     public void register(String fullName, String email, String phone, String password) {
         if (state.loading) return;
         int operation = beginOperation();
+        checkingExisting = false;
+        changingAccount = true;
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
             if (operation != operationId) return;
+            changingAccount = false;
             if (!task.isSuccessful()) {
                 fail(operation, mapError(task.getException()));
                 return;
@@ -106,6 +141,7 @@ public final class AuthRepository {
                 fail(operation, Error.UNKNOWN);
                 return;
             }
+            checkingUid = user.getUid(); // Own Auth callback may arrive during the profile write.
 
             Map<String, Object> profile = new HashMap<>();
             profile.put("fullName", fullName);
@@ -131,21 +167,31 @@ public final class AuthRepository {
         if (state.loading) return;
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
+            invalidateVerifiedSession();
             publish(new State(false, null, Error.NONE));
             return;
         }
+        if (state.user != null && VerifiedSessionLease.reusable(verifiedUid, user.getUid(), verifiedAt,
+                android.os.SystemClock.elapsedRealtime(), tokenExpiresAt, System.currentTimeMillis())) return;
+        checkingExisting = true;
         verifySession(user, beginOperation(), false);
     }
 
     public void signOut() {
         // Late session-check callbacks must not reopen either logged-out protected screen.
         operationId++;
+        changingAccount = false;
+        checkingExisting = false;
+        profileUid = null; checkingUid = null;
+        invalidateVerifiedSession();
         auth.signOut();
+        observedUid = currentUid();
         publish(new State(false, null, Error.NONE));
     }
 
     private int beginOperation() {
         int operation = ++operationId;
+        checkingUid = null;
         publish(new State(true, null, Error.NONE));
         return operation;
     }
@@ -155,15 +201,16 @@ public final class AuthRepository {
             fail(operation, Error.INVALID_CREDENTIALS);
             return;
         }
-        // Reload detects deleted/disabled accounts; refresh claims for every session gate.
+        checkingUid = user.getUid();
+        // Cold/expired leases still reload the account, refresh signed claims and fetch the profile.
         user.reload().addOnCompleteListener(reloadTask -> {
-            if (operation != operationId) return;
+            if (operation != operationId || !user.getUid().equals(currentUid())) return;
             if (!reloadTask.isSuccessful()) {
                 fail(operation, mapError(reloadTask.getException()));
                 return;
             }
             user.getIdToken(true).addOnCompleteListener(tokenTask -> {
-                if (operation != operationId) return;
+                if (operation != operationId || !user.getUid().equals(currentUid())) return;
                 if (!tokenTask.isSuccessful()) {
                     fail(operation, mapError(tokenTask.getException()));
                     return;
@@ -171,20 +218,21 @@ public final class AuthRepository {
                 Map<String, Object> claims = tokenTask.getResult().getClaims();
                 firestore.collection("users").document(user.getUid()).get(Source.SERVER)
                         .addOnCompleteListener(profileTask -> {
-                            if (operation != operationId) return;
+                            if (operation != operationId || !user.getUid().equals(currentUid())) return;
                             if (!profileTask.isSuccessful()) {
                                 fail(operation, mapError(profileTask.getException()));
                                 return;
                             }
                             acceptProfile(profileTask.getResult(), claims, user.getEmail(),
-                                    operation, patientRegistration);
+                                    operation, patientRegistration, tokenTask.getResult().getExpirationTimestamp() * 1000L);
                         });
             });
         });
     }
 
     private void acceptProfile(DocumentSnapshot document, Map<String, Object> claims,
-                               String authenticatedEmail, int operation, boolean patientRegistration) {
+                               String authenticatedEmail, int operation, boolean patientRegistration, long expiresAt) {
+        if (operation != operationId || !document.getId().equals(currentUid())) return;
         if (!document.exists()) {
             fail(operation, Error.PROFILE_MISSING);
             return;
@@ -200,14 +248,18 @@ public final class AuthRepository {
             fail(operation, Error.INVALID_PROFILE);
             return;
         }
+        profileUid = document.getId(); verifiedUid = profileUid;
+        verifiedAt = android.os.SystemClock.elapsedRealtime(); tokenExpiresAt = expiresAt;
         publish(new State(false, result.user, Error.NONE));
     }
 
     private void rollbackNewAccount(FirebaseUser user, int operation) {
         // Auth and Firestore cannot share a transaction. Only delete the NEW account whose
         // profile write was rejected. Never delete an existing account on a login/read failure.
+        changingAccount = true; // This intentional account removal must not invalidate its callback.
         user.delete().addOnCompleteListener(deleteTask -> {
             if (operation != operationId) return;
+            changingAccount = false;
             fail(operation, deleteTask.isSuccessful()
                     ? Error.PROFILE_FAILED_ACCOUNT_REMOVED : Error.PROFILE_FAILED_ACCOUNT_REMAINS);
         });
@@ -215,7 +267,13 @@ public final class AuthRepository {
 
     private void fail(int operation, Error error) {
         if (operation != operationId) return;
+        if (checkingExisting && error == Error.INVALID_CREDENTIALS) error = Error.SESSION_EXPIRED;
+        android.util.Log.w("MediBookAuth", "Authentication/session failure: " + error.name());
+        invalidateVerifiedSession();
+        profileUid = null; checkingUid = null;
         auth.signOut();
+        observedUid = currentUid(); changingAccount = false;
+        checkingExisting = false;
         publish(new State(false, null, error));
     }
 
@@ -227,6 +285,7 @@ public final class AuthRepository {
     }
 
     private Error mapError(Exception exception) {
+        com.example.medibook.utils.Diagnostics.failure("Authentication request", exception);
         if (exception instanceof FirebaseNetworkException) return Error.NETWORK;
         if (exception instanceof FirebaseTooManyRequestsException) return Error.TOO_MANY_REQUESTS;
         if (exception instanceof FirebaseAuthUserCollisionException) return Error.EMAIL_IN_USE;

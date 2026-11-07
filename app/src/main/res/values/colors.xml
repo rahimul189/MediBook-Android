@@ -2,10 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="medibook_teal">#007D79</color>
+    <color name="medibook_teal">#00BFA5</color>
     <color name="medibook_teal_dark">#005C59</color>
-    <color name="medibook_blue">#245EA8</color>
-    <color name="medibook_background">#F3F8FA</color>
+    <color name="medibook_blue">#1565C0</color>
+    <color name="medibook_blue_container">#EAF2FC</color>
+    <color name="medibook_background">#FFFFFF</color>
     <color name="medibook_text">#163340</color>
     <color name="medibook_text_secondary">#526671</color>
     <color name="medibook_outline">#73888F</color>

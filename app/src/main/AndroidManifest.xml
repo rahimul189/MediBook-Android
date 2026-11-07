@@ -12,7 +12,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
         android:theme="@style/Theme.MediBook">
+        <activity android:name=".activities.patient.BookAppointmentActivity" android:exported="false" />
+        <activity android:name=".activities.AppointmentsActivity" android:exported="false" />
+        <activity android:name=".activities.AppointmentDetailsActivity" android:exported="false" />
         <activity
             android:name=".activities.admin.ManageDoctorScheduleActivity"
             android:exported="false"

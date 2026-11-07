@@ -5,7 +5,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ClientRulesCanaryTest.class, DoctorRulesTest.class, ScheduleRulesTest.class})
+@Suite.SuiteClasses({ClientRulesCanaryTest.class, DoctorRulesTest.class, ScheduleRulesTest.class,
+        AppointmentRulesTest.class, InventoryRulesTest.class, SlotSerialRulesTest.class})
 public class RulesIntegrationSuite {
     @ClassRule public static final LocalFirestoreEmulator EMULATOR = new LocalFirestoreEmulator();
 }

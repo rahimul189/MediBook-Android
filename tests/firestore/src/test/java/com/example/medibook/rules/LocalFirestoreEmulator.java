@@ -78,7 +78,7 @@ public final class LocalFirestoreEmulator extends ExternalResource {
 
     @Override protected void after() {
         try {
-            if (process != null && process.isAlive()) Files.writeString(reports.resolve("rule-coverage.json"), RulesClient.coverage());
+            if (process != null && process.isAlive()) RulesClient.exportCoverage(reports.resolve("rule-coverage.json"));
             if (!sha256(rules).equals(rulesHash)) throw new AssertionError("Local firestore.rules changed during tests");
         } catch (Exception error) { throw new AssertionError("Could not verify rules/coverage", error); }
         finally {

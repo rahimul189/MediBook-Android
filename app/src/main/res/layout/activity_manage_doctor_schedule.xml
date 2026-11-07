@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/white"
-        app:menu="@menu/menu_admin_doctors"
+        app:menu="@menu/menu_admin_schedules"
         app:navigationContentDescription="@string/navigate_back"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:title="@string/schedule_title"
@@ -26,35 +26,57 @@
         <LinearLayout
             android:id="@+id/sessionLoading"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                app:indicatorSize="24dp" app:trackThickness="3dp"
                 android:indeterminate="true" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="12dp"
                 android:gravity="center"
                 android:text="@string/checking_session"
                 android:textAppearance="@style/TextAppearance.MediBook.Body" />
         </LinearLayout>
 
-        <!-- Header, empty/error state and entries share the same mobile-friendly scroll. -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/adminContent"
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/adminPanel"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:padding="16dp"
-            android:scrollbars="vertical"
+            android:fillViewport="true"
             android:visibility="gone"
-            tools:listitem="@layout/item_doctor_schedule"
-            tools:visibility="visible" />
+            tools:visibility="visible">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/appointment_publish_intro" android:textAppearance="@style/TextAppearance.MediBook.Body" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/publicationDateButton"
+                    style="@style/Widget.MediBook.TextButton" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="@string/appointment_date" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/publishSlotsButton"
+                    style="@style/Widget.MediBook.PrimaryButton" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="@string/appointment_publish_slots" />
+                <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/publicationProgress"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:indeterminate="true" android:visibility="gone" />
+                <TextView android:id="@+id/publicationStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:saveEnabled="false"
+                    android:accessibilityLiveRegion="polite" android:textAppearance="@style/TextAppearance.MediBook.Body" />
+            </LinearLayout>
+            <!-- Existing schedule management remains below the always-visible publication controls. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/adminContent" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:nestedScrollingEnabled="false" android:clipToPadding="false"
+                android:padding="16dp" android:scrollbars="vertical" tools:listitem="@layout/item_doctor_schedule" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
     </FrameLayout>
 </LinearLayout>

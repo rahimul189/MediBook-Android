@@ -166,6 +166,7 @@ public final class DoctorScheduleRepository implements DoctorScheduleStore {
     }
 
     public static Error errorFor(Exception exception) {
+        com.example.medibook.utils.Diagnostics.failure("Schedule operation", exception);
         FirebaseFirestoreException firestoreError = null;
         Throwable cause = exception;
         for (int depth = 0; cause != null && depth < 10; depth++, cause = cause.getCause()) {

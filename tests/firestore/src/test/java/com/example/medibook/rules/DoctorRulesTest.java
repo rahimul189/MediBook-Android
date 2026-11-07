@@ -12,6 +12,26 @@ import static org.junit.Assert.*;
 
 /** One-for-one replacement of the 15 Doctor/Patient policy cases, with all invalid-value loops. */
 public class DoctorRulesTest extends RulesFixtures {
+    @Test public void optionalHttpsDoctorImagePreservesLegacyAndAccessControls() {
+        String url = "https://res.cloudinary.com/demo/image/upload/w_200,c_fill/doctor.jpg";
+        allowed(admin().set("doctors/photo", merge(newDoctor(), map("imageUrl", url))));
+        assertEquals(url, fields(patient().get("doctors/photo")).getAsJsonObject("imageUrl").get("stringValue").getAsString());
+        allowed(patient().get("doctors/active")); // Legacy eight-field document remains readable.
+        allowed(admin().update("doctors/photo", map("imageUrl", "", "updatedAt", Special.SERVER_TIME)));
+        allowed(admin().update("doctors/photo", map("imageUrl", Special.DELETE_FIELD, "updatedAt", Special.SERVER_TIME)));
+        denied(patient().update("doctors/active", map("imageUrl", url, "updatedAt", Special.SERVER_TIME)));
+        denied(anonymous().get("doctors/photo"));
+        denied(admin().update("doctors/photo", map("createdAt", Special.SERVER_TIME, "imageUrl", url, "updatedAt", Special.SERVER_TIME)));
+    }
+    @Test public void doctorImageUrlRejectsInvalidSchemesTypesAndUnboundedInput() {
+        for (Object value : new Object[]{null, 123, false, "http://example.org/a.jpg", "data:image/png;base64,AAAA",
+                "https://user:secret@example.org/photo", "https://example.org:443/photo", "https://example.org/photo#fragment",
+                "https://example.org/bad image", "https://example.org/\nphoto", "https://", "https://example.org/" + "a".repeat(2048)}) {
+            denied(admin().set("doctors/bad-photo", merge(newDoctor(), map("imageUrl", value))));
+        }
+        allowed(admin().set("doctors/blank-photo", merge(newDoctor(), map("imageUrl", ""))));
+        allowed(admin().set("doctors/query-photo", merge(newDoctor(), map("imageUrl", "https://images.example.org/doctor%20one.jpg?width=200&height=200"))));
+    }
     @Test public void patientProfileQueryUsesActiveStatusAndStableDocumentId() {
         assertEquals(1, documents(patient().activeDoctorById("active")).size());
         // Exact-name queries can evaluate the actual resource: unavailable paths are denied,
@@ -164,8 +184,9 @@ public class DoctorRulesTest extends RulesFixtures {
     }
 
     @Test public void unrelatedCollectionsAndDoctorSubcollectionsDenied() {
+        // Top-level appointments now have dedicated Rules coverage in AppointmentRulesTest.
         for (RulesClient client : new RulesClient[]{patient(), admin(), anonymous()}) {
-            for (String path : new String[]{"appointments/fixture", "schedules/fixture", "unrelated/fixture", "doctors/active/private/fixture"}) {
+            for (String path : new String[]{"schedules/fixture", "unrelated/fixture", "doctors/active/private/fixture"}) {
                 denied(client.get(path));
                 denied(client.set(path, map("value", "fixture")));
             }

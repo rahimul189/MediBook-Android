@@ -1,0 +1,32 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" app:title="@string/appointment_my" app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationContentDescription="@string/navigate_back" />
+    <include android:id="@+id/sessionLoading" layout="@layout/view_patient_session_loading" />
+    <LinearLayout android:id="@+id/content" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+        <Spinner android:id="@+id/statusFilter" android:layout_width="match_parent" android:layout_height="48dp"
+            android:contentDescription="@string/appointment_status_filter" />
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/doctorFilterLayout" style="@style/Widget.MediBook.Input" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="@string/appointment_doctor_filter" android:visibility="gone">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/doctorFilter" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:inputType="textPersonName" android:maxLines="1" android:saveEnabled="false" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout android:id="@+id/dateFilters" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:visibility="gone">
+            <com.google.android.material.button.MaterialButton android:id="@+id/dateButton" style="@style/Widget.MediBook.TextButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/appointment_all_dates" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/clearDateButton" style="@style/Widget.MediBook.TextButton"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/appointment_clear_date" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/refreshButton" style="@style/Widget.MediBook.TextButton"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/appointment_refresh" />
+        <com.google.android.material.progressindicator.CircularProgressIndicator android:id="@+id/progress" android:layout_width="48dp"
+            android:layout_height="48dp" android:layout_gravity="center_horizontal" android:indeterminate="true" android:visibility="gone" />
+        <TextView android:id="@+id/message" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite" android:saveEnabled="false" android:textAppearance="@style/TextAppearance.MediBook.Body" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/list" android:layout_width="match_parent"
+            android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="16dp" />
+    </LinearLayout>
+</LinearLayout>

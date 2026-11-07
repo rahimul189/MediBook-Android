@@ -24,6 +24,8 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
         void onSearchChanged(String query);
         void onSpecializationChanged(String specialization);
         void onSearchSubmitted();
+        void onOpenAppointments();
+        void onRetryLive();
     }
 
     private final Listener listener;
@@ -31,6 +33,18 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
     private String patientName;
     private boolean handlingInput;
     private Holder bound;
+    private String liveDisplay;
+    private boolean liveRetry;
+
+    public void setLiveDisplay(String text) {
+        setLiveDisplay(text, true);
+    }
+    public void setLiveDisplay(String text, boolean retry) {
+        liveDisplay = text;
+        liveRetry = retry;
+        // Avoid re-binding the search header (and interrupting its keyboard) on live events.
+        if (bound != null) bound.renderLive();
+    }
 
     public PatientHomeHeaderAdapter(Listener listener, PatientDoctorDirectoryViewModel.State initial) {
         this.listener = listener;
@@ -74,8 +88,10 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
         Holder(ItemPatientDirectoryHeaderBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
-            ViewCompat.setAccessibilityHeading(binding.careHeading, true);
+            ViewCompat.setAccessibilityHeading(binding.welcomeMessage, true);
             ViewCompat.setAccessibilityHeading(binding.directoryHeading, true);
+            binding.appointmentsButton.setOnClickListener(view -> listener.onOpenAppointments());
+            binding.liveUpdates.liveRetry.setOnClickListener(view -> listener.onRetryLive());
             binding.searchInput.setOnEditorActionListener((view, action, event) -> {
                 if (action != EditorInfo.IME_ACTION_SEARCH) return false;
                 view.clearFocus();
@@ -104,6 +120,7 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
             rendering = true;
             try {
                 binding.welcomeMessage.setVisibility(patientName == null ? View.GONE : View.VISIBLE);
+                renderLive();
                 binding.welcomeMessage.setText(patientName == null ? null
                         : itemView.getContext().getString(R.string.patient_welcome, patientName));
                 String current = binding.searchInput.getText() == null ? "" : binding.searchInput.getText().toString();
@@ -131,6 +148,11 @@ public final class PatientHomeHeaderAdapter extends RecyclerView.Adapter<Patient
             binding.resultCount.setVisibility(ready ? View.VISIBLE : View.GONE);
             if (ready) binding.resultCount.setText(itemView.getContext().getResources().getQuantityString(
                     R.plurals.patient_directory_result_count, state.doctors.size(), state.doctors.size()));
+        }
+        void renderLive() {
+            binding.liveUpdates.getRoot().setVisibility(liveDisplay == null ? View.GONE : View.VISIBLE);
+            binding.liveUpdates.liveMessage.setText(liveDisplay);
+            binding.liveUpdates.liveRetry.setVisibility(liveRetry ? View.VISIBLE : View.GONE);
         }
     }
 }

@@ -26,20 +26,21 @@
         <LinearLayout
             android:id="@+id/sessionLoading"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                app:indicatorSize="24dp" app:trackThickness="3dp"
                 android:indeterminate="true" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="12dp"
                 android:gravity="center"
                 android:text="@string/checking_session"
                 android:textAppearance="@style/TextAppearance.MediBook.Body" />
@@ -71,21 +72,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="20dp">
-
-                        <TextView
-                            android:id="@+id/formHeading"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/add_doctor_button"
-                            android:textAppearance="@style/TextAppearance.MediBook.Heading" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="@string/doctor_storage_label"
-                            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-                            android:textColor="@color/medibook_blue" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -217,6 +203,16 @@
                                 android:inputType="text|textMultiLine|textCapSentences"
                                 android:maxLength="1000"
                                 android:minLines="4" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/imageUrlLayout" style="@style/Widget.MediBook.Input"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:hint="@string/doctor_image_url_label" app:helperText="@string/doctor_image_url_help">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/imageUrlInput" android:layout_width="match_parent"
+                                android:layout_height="wrap_content" android:inputType="textUri"
+                                android:importantForAutofill="no" android:maxLength="2048" android:maxLines="3" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch

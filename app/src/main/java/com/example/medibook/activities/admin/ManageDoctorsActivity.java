@@ -69,7 +69,7 @@ public class ManageDoctorsActivity extends AppCompatActivity implements AuthRepo
         editorLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 pendingResult = result.getData().getIntExtra(AddEditDoctorActivity.EXTRA_RESULT, 0);
-                if (adminVerified) onDoctorsChanged(model.getState());
+                if (adminVerified) { model.refresh(); onDoctorsChanged(model.getState()); }
             }
         });
     }
@@ -107,6 +107,7 @@ public class ManageDoctorsActivity extends AppCompatActivity implements AuthRepo
             AuthNavigation.openDestination(this, state.user);
         } else {
             model.startSession(DoctorRepository.currentUserId());
+            if (pendingResult != 0) model.refresh();
             onDoctorsChanged(model.getState());
         }
     }

@@ -127,6 +127,7 @@ public final class DoctorRepository {
     }
 
     public static Error errorFor(Exception exception) {
+        com.example.medibook.utils.Diagnostics.failure("Doctor operation", exception);
         Throwable cause = exception;
         for (int depth = 0; cause != null && depth < 10; depth++, cause = cause.getCause()) {
             if (cause instanceof Failure) return ((Failure) cause).error;

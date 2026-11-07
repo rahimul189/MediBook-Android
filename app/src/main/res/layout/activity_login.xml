@@ -19,6 +19,10 @@
 
         <include layout="@layout/view_auth_brand" />
 
+        <ImageView android:layout_width="match_parent" android:layout_height="140dp"
+            android:layout_marginBottom="16dp" android:importantForAccessibility="no"
+            android:src="@drawable/illustration_login" android:scaleType="fitCenter" />
+
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.MediBook.AuthCard"
             android:layout_width="match_parent"

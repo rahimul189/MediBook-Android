@@ -17,6 +17,10 @@ import java.util.concurrent.Executor;
 
 /** Retains online reads/writes across rotation without keeping Activity references. */
 public final class DoctorScheduleListViewModel extends ViewModel {
+    public com.google.android.gms.tasks.Task<Integer> publication;
+    public long publicationDate = -1;
+    public boolean publicationDateChosen;
+    public String publicationFeedback;
     public static final class State {
         public final String doctorName;
         public final List<DoctorSchedule> schedules;
@@ -53,6 +57,7 @@ public final class DoctorScheduleListViewModel extends ViewModel {
     private boolean statusSaved;
     private int generation;
     private boolean ended;
+    private long loadedAt;
     private DoctorScheduleRepository.Error error = DoctorScheduleRepository.Error.NONE;
 
     public DoctorScheduleListViewModel() { this(new DoctorScheduleRepository(), TaskExecutors.MAIN_THREAD); }
@@ -75,7 +80,8 @@ public final class DoctorScheduleListViewModel extends ViewModel {
     public boolean startSession(String uid) {
         if (ended || uid == null || !repository.isCurrentUser(uid) || (owner != null && !owner.equals(uid))) return false;
         owner = uid;
-        refresh();
+        if (directory == null || System.currentTimeMillis() - loadedAt > 30_000L) refresh();
+        else publish();
         return true;
     }
 
@@ -88,6 +94,9 @@ public final class DoctorScheduleListViewModel extends ViewModel {
         writing = false;
         busyId = null;
         statusSaved = false;
+        publicationFeedback = null;
+        publicationDate = -1;
+        publicationDateChosen = false;
         error = DoctorScheduleRepository.Error.SESSION_CHANGED;
     }
 
@@ -101,7 +110,7 @@ public final class DoctorScheduleListViewModel extends ViewModel {
         repository.load(uid, doctorId).addOnCompleteListener(callbacks, task -> {
             if (operation != generation || !repository.isCurrentUser(uid)) return;
             loading = false;
-            if (task.isSuccessful()) directory = task.getResult();
+            if (task.isSuccessful()) { directory = task.getResult(); loadedAt = System.currentTimeMillis(); }
             else {
                 directory = null;
                 error = DoctorScheduleRepository.errorFor(task.getException());

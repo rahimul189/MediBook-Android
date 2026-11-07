@@ -9,7 +9,7 @@
         android:id="@+id/toolbar" android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize" android:background="@color/white"
         app:title="@string/patient_home_title" app:titleTextColor="@color/medibook_text"
-        app:logo="@drawable/ic_medical_cross" app:menu="@menu/menu_patient" />
+        app:logo="@drawable/ic_medical_cross" app:menu="@menu/menu_patient_home" />
 
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <include android:id="@+id/sessionLoading" layout="@layout/view_patient_session_loading" />

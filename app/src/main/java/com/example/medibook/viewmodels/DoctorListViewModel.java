@@ -37,6 +37,7 @@ public final class DoctorListViewModel extends ViewModel {
     private boolean loading;
     private boolean writing;
     private boolean statusChanged;
+    private long loadedAt;
     private DoctorRepository.Error error = DoctorRepository.Error.NONE;
 
     public State getState() { return new State(doctors, loading, writing, error); }
@@ -50,7 +51,8 @@ public final class DoctorListViewModel extends ViewModel {
             clearState();
             owner = uid;
         }
-        refresh();
+        if (loadedAt == 0 || System.currentTimeMillis() - loadedAt > 30_000L) refresh();
+        else publish();
     }
 
     public void endSession() {
@@ -65,6 +67,7 @@ public final class DoctorListViewModel extends ViewModel {
         loading = false;
         writing = false;
         statusChanged = false;
+        loadedAt = 0;
         error = DoctorRepository.Error.NONE;
     }
 
@@ -80,6 +83,7 @@ public final class DoctorListViewModel extends ViewModel {
             loading = false;
             if (task.isSuccessful()) {
                 doctors = task.getResult();
+                loadedAt = System.currentTimeMillis();
             } else {
                 doctors = Collections.emptyList();
                 error = DoctorRepository.errorFor(task.getException());

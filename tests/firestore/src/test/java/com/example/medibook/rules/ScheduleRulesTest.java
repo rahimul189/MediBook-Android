@@ -235,7 +235,8 @@ public class ScheduleRulesTest extends RulesFixtures {
 
     @Test public void unrelatedCollectionsAndCollectionGroupDenied() {
         for (RulesClient client : new RulesClient[]{admin(), patient(), anonymous()}) {
-            for (String path : new String[]{"schedules/fixture", "appointments/fixture", "unrelated/fixture", "doctors/active/private/fixture",
+            // Top-level appointments now have dedicated Rules coverage in AppointmentRulesTest.
+            for (String path : new String[]{"schedules/fixture", "unrelated/fixture", "doctors/active/private/fixture",
                     "doctors/active/schedules/enabled/appointments/fixture"}) {
                 denied(client.get(path));
                 denied(client.set(path, map("value", "fixture")));

@@ -26,3 +26,5 @@ rootProject.name = "MediBook"
 include(":app")
 include(":firestore-rules-tests")
 project(":firestore-rules-tests").projectDir = file("tests/firestore")
+include(":rtdb-rules-tests")
+project(":rtdb-rules-tests").projectDir = file("tests/rtdb")

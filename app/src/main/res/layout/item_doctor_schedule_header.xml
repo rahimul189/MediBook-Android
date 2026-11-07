@@ -19,42 +19,6 @@
         android:layout_marginTop="8dp"
         android:textAppearance="@style/TextAppearance.MediBook.Body" />
 
-    <com.google.android.material.card.MaterialCardView
-        style="@style/Widget.MediBook.AuthCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/medibook_teal_container"
-            android:orientation="vertical"
-            android:padding="20dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/schedule_storage_label"
-                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                android:textColor="@color/medibook_teal_dark" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/schedule_storage_notice"
-                android:textAppearance="@style/TextAppearance.MediBook.Body" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/schedule_overlap_notice"
-                android:textAppearance="@style/TextAppearance.MediBook.Body" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addScheduleButton"
         style="@style/Widget.MediBook.PrimaryButton"

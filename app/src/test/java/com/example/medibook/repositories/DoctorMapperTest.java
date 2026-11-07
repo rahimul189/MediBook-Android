@@ -149,7 +149,9 @@ public class DoctorMapperTest {
         Doctor doctor = DoctorMapper.fromMap("doctor-1", data());
         Object serverTimestamp = new Object();
         Map<String, Object> created = DoctorMapper.createMap(doctor, serverTimestamp);
-        assertEquals(data().keySet(), created.keySet());
+        java.util.Set<String> expected = new HashSet<>(data().keySet()); expected.add("imageUrl");
+        assertEquals(expected, created.keySet());
+        assertEquals("", created.get("imageUrl"));
         assertSame(serverTimestamp, created.get("createdAt"));
         assertSame(serverTimestamp, created.get("updatedAt"));
         assertEquals(50025L, created.get("consultationFee"));
@@ -161,7 +163,7 @@ public class DoctorMapperTest {
         Doctor doctor = DoctorMapper.fromMap("doctor-1", data());
         Object serverTimestamp = new Object();
         Map<String, Object> update = DoctorMapper.updateMap(doctor, serverTimestamp);
-        assertEquals(7, update.size());
+        assertEquals(8, update.size());
         assertFalse(update.containsKey("createdAt"));
         assertFalse(update.containsKey("id"));
         assertSame(serverTimestamp, update.get("updatedAt"));

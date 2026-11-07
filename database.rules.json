@@ -1,0 +1,54 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "display": {
+      "bookings": {
+        ".indexOn": ["changedAt"],
+        ".read": "auth != null && auth.token.admin === true && query.orderByChild === 'changedAt' && query.limitToLast > 0 && query.limitToLast <= 20",
+        "$id": {
+          ".read": "auth != null && auth.token.admin === true",
+          ".write": "auth != null && auth.token.admin === true && $id.matches(/^[A-Za-z0-9_-]{1,128}$/) && newData.exists()",
+          ".validate": "newData.hasChildren(['doctorId', 'dateKey', 'queueToken', 'status', 'changedAt']) && (!data.exists() || (newData.child('doctorId').val() === data.child('doctorId').val() && newData.child('dateKey').val() === data.child('dateKey').val() && newData.child('queueToken').val() === data.child('queueToken').val() && newData.child('changedAt').val() === data.child('changedAt').val()))",
+          "doctorId": { ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,128}$/)" },
+          "dateKey": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,16}$/)" },
+          "queueToken": { ".validate": "newData.isString() && newData.val().matches(/^Q(000[1-9]|00[1-9][0-9]|0[1-9][0-9]{2}|1[0-3][0-9]{2}|14[0-3][0-9]|1440)$/)" },
+          "status": { ".validate": "newData.val() === 'Confirmed'" },
+          "changedAt": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      },
+      "status": {
+        "$uid": {
+          ".indexOn": ["changedAt"],
+          ".read": "auth != null && (auth.token.admin === true || (auth.uid === $uid && auth.token.admin == null)) && query.orderByChild === 'changedAt' && query.limitToLast > 0 && query.limitToLast <= 20",
+          "$id": {
+            ".read": "auth != null && (auth.token.admin === true || (auth.uid === $uid && auth.token.admin == null))",
+            ".write": "auth != null && (auth.token.admin === true || (auth.uid === $uid && auth.token.admin == null)) && $uid.matches(/^[A-Za-z0-9_-]{1,128}$/) && $id.matches(/^[A-Za-z0-9_-]{1,128}$/) && newData.exists()",
+            ".validate": "newData.hasChildren(['doctorId', 'dateKey', 'queueToken', 'status', 'changedAt']) && (!data.exists() || (newData.child('doctorId').val() === data.child('doctorId').val() && newData.child('dateKey').val() === data.child('dateKey').val() && newData.child('queueToken').val() === data.child('queueToken').val() && newData.child('changedAt').val() >= data.child('changedAt').val()))",
+            "doctorId": { ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,128}$/)" },
+            "dateKey": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,16}$/)" },
+            "queueToken": { ".validate": "newData.isString() && newData.val().matches(/^Q(000[1-9]|00[1-9][0-9]|0[1-9][0-9]{2}|1[0-3][0-9]{2}|14[0-3][0-9]|1440)$/)" },
+            "status": { ".validate": "newData.val() === 'Confirmed' || newData.val() === 'Cancelled'" },
+            "changedAt": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && newData.val() <= now + 60000" },
+            "$other": { ".validate": false }
+          }
+        }
+      },
+      "queues": {
+        "$doctor": {
+          "$date": {
+            ".read": "auth != null && (auth.token.admin === true || auth.token.admin == null)",
+            "$token": {
+              ".write": "auth != null && auth.token.admin === true && $doctor.matches(/^[A-Za-z0-9_-]{1,128}$/) && $date.matches(/^[0-9]{1,16}$/) && $token.matches(/^Q(000[1-9]|00[1-9][0-9]|0[1-9][0-9]{2}|1[0-3][0-9]{2}|14[0-3][0-9]|1440)$/) && newData.exists()",
+              ".validate": "newData.hasChildren(['status', 'changedAt']) && (!data.exists() || newData.child('changedAt').val() >= data.child('changedAt').val())",
+              "status": { ".validate": "newData.val() === 'Confirmed' || newData.val() === 'Cancelled'" },
+              "changedAt": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && newData.val() <= now + 60000" },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      }
+    }
+  }
+}

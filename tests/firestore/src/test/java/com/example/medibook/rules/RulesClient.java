@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
@@ -17,6 +18,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -96,6 +100,18 @@ final class RulesClient {
     Reply set(String path, Map<String, Object> data) { return commit(write(path, data, false)); }
     Reply update(String path, Map<String, Object> patch) { return commit(write(path, patch, true)); }
     Reply commit(JsonObject... writes) { return request("POST", "/v1/" + DOCUMENTS + ":commit", commitBody(writes)); }
+    Reply beginTransaction() {
+        return request("POST", "/v1/" + DOCUMENTS + ":beginTransaction", object("options", object("readWrite", object())));
+    }
+    Reply transactionRead(String transaction, String... paths) {
+        JsonArray documents = new JsonArray();
+        for (String path : paths) documents.add(DOCUMENTS + "/" + path);
+        return request("POST", "/v1/" + DOCUMENTS + ":batchGet", object("documents", documents, "transaction", transaction));
+    }
+    Reply transactionCommit(String transaction, JsonObject... writes) {
+        JsonObject body = commitBody(writes); body.addProperty("transaction", transaction);
+        return request("POST", "/v1/" + DOCUMENTS + ":commit", body);
+    }
     Reply query(String parent, String collection, Boolean active, boolean collectionGroup) {
         JsonObject from = object("collectionId", collection);
         if (collectionGroup) from.addProperty("allDescendants", true);
@@ -107,6 +123,25 @@ final class RulesClient {
                 object("structuredQuery", query));
     }
     Reply query(String collection, Boolean active) { return query("", collection, active, false); }
+
+    /** Top-level appointment query; a Patient must pass its own uid, Admin may pass null. */
+    Reply queryAppointments(String patientUid) {
+        JsonArray from = new JsonArray(); from.add(object("collectionId", "appointments"));
+        JsonObject query = object("from", from);
+        if (patientUid != null) {
+            query.add("where", object("fieldFilter", object("field", object("fieldPath", "patientUid"),
+                    "op", "EQUAL", "value", value(patientUid))));
+        }
+        return request("POST", "/v1/" + DOCUMENTS + ":runQuery", object("structuredQuery", query));
+    }
+
+    /** Server-side shape of orderBy(updatedAt).limitToLast(20), used by the Admin live bridge. */
+    Reply recentChangedAppointments() {
+        JsonArray from = new JsonArray(); from.add(object("collectionId", "appointments"));
+        JsonArray order = new JsonArray(); order.add(object("field", object("fieldPath", "updatedAt"), "direction", "DESCENDING"));
+        return request("POST", "/v1/" + DOCUMENTS + ":runQuery",
+                object("structuredQuery", object("from", from, "orderBy", order, "limit", 20)));
+    }
 
     /** Exact Patient profile query shape: active=true AND document path identity. */
     Reply activeDoctorById(String id) {
@@ -149,7 +184,8 @@ final class RulesClient {
         if (path == null) throw new IllegalArgumentException("Missing emulator request path");
         String documents = "/v1/" + DOCUMENTS;
         boolean clientPath = path.equals(documents) || path.startsWith(documents + "/")
-                || path.equals(documents + ":commit") || path.equals(documents + ":runQuery");
+                || path.equals(documents + ":commit") || path.equals(documents + ":runQuery")
+                || path.equals(documents + ":beginTransaction") || path.equals(documents + ":batchGet");
         if (!"http".equals(uri.getScheme()) || !HOST.equals(uri.getHost()) || uri.getPort() != PORT
                 || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
                 || !uri.normalize().equals(uri)
@@ -177,10 +213,27 @@ final class RulesClient {
         Reply reply = exchange("POST", "/v1/" + DOCUMENTS + ":commit", commitBody(write(path, data, false)), "owner", "fixture setup");
         if (reply.code != 200) throw new AssertionError("Fixture seed failed: " + reply.code + " " + reply.body);
     }
-    static String coverage() {
-        Reply reply = exchange("GET", "/emulator/v1/projects/" + PROJECT + ":ruleCoverage", null, null, "coverage");
-        if (reply.code != 200) throw new AssertionError("Emulator coverage report failed");
-        return JSON.toJson(reply.body);
+    /** Streams the potentially large coverage report without parsing it into memory. */
+    static void exportCoverage(Path report) {
+        URI uri = URI.create(ORIGIN + "/emulator/v1/projects/" + PROJECT + ":ruleCoverage");
+        requireLocal(uri);
+        HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(120))
+                .header("Content-Type", "application/json").GET().build();
+        try {
+            HttpResponse<InputStream> response = HTTP.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() != 200) {
+                response.body().close();
+                throw new AssertionError("Emulator coverage report failed: " + response.statusCode());
+            }
+            try (InputStream body = response.body()) {
+                Files.copy(body, report, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException error) {
+            throw new AssertionError("Emulator coverage request failed", error);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Emulator coverage request interrupted", interrupted);
+        }
     }
 
     static JsonObject write(String path, Map<String, Object> data, boolean patch) {
@@ -257,5 +310,10 @@ final class RulesClient {
     static long integer(JsonObject fields, String name) { return fields.getAsJsonObject(name).get("integerValue").getAsLong(); }
     static boolean bool(JsonObject fields, String name) { return fields.getAsJsonObject(name).get("booleanValue").getAsBoolean(); }
     static String text(JsonObject fields, String name) { return fields.getAsJsonObject(name).get("stringValue").getAsString(); }
+    static boolean nullField(JsonObject fields, String name) {
+        JsonElement value = fields.get(name);
+        return value != null && value.isJsonObject()
+                && value.getAsJsonObject().has("nullValue");
+    }
     static Instant time(JsonObject fields, String name) { return Instant.parse(fields.getAsJsonObject(name).get("timestampValue").getAsString()); }
 }

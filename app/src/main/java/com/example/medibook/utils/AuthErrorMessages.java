@@ -15,6 +15,7 @@ public final class AuthErrorMessages {
     public static int forError(AuthRepository.Error error) {
         switch (error) {
             case NETWORK: return R.string.auth_error_network;
+            case SESSION_EXPIRED: return R.string.appointment_session_changed;
             case TOO_MANY_REQUESTS: return R.string.auth_error_rate_limit;
             case EMAIL_IN_USE: return R.string.auth_error_email_in_use;
             case WEAK_PASSWORD: return R.string.auth_error_password_policy;
